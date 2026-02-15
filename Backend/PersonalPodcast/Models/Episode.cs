@@ -14,5 +14,6 @@
         public DateTime? PublishedDate { get; set; }
         public int PlayCount { get; set; }
         public DateTime CreatedAt { get; set; }
+        public ICollection<EpisodeCategory> EpisodeCategories { get; set; } = new List<EpisodeCategory>();
     }
 }
