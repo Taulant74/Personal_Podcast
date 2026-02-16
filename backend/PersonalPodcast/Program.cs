@@ -1,6 +1,9 @@
+using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
-using DotNetEnv;
+using PersonalPodcast.Services;
+
+
 
 // e loadim .env file ku e kena rujt konfigurimin e cloudinary
 Env.Load();
@@ -9,6 +12,8 @@ Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLO
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<CloudinaryService>();
 
 // Databaza
 builder.Services.AddDbContext<PodcastDbContext>(options =>
