@@ -24,7 +24,7 @@ namespace PersonalPodcast.Controllers
 
             if (request.Page < 1) request.Page = 1;
             if (request.PageSize < 1) request.PageSize = 10;
-            if (request.PageSize > 50) request.PageSize = 30;
+            if (request.PageSize > 50) request.PageSize = 50;
 
             var query = _db.Episodes
                 .AsNoTracking()
@@ -42,10 +42,28 @@ namespace PersonalPodcast.Controllers
                 );
             }
 
+            var sortBy = (request.SortBy ?? "date").Trim().ToLowerInvariant();
+            var sortDir = (request.SortDir ?? "desc").Trim().ToLowerInvariant();
+            var asc = sortDir == "asc";
+
             var total = await query.CountAsync();
 
+            query = sortBy switch
+            {
+                "title" => asc
+                    ? query.OrderBy(e => e.Title).ThenBy(e => e.Id)
+                    : query.OrderByDescending(e => e.Title).ThenByDescending(e => e.Id),
+
+                "playcount" => asc
+                    ? query.OrderBy(e => e.PlayCount).ThenBy(e => e.Id)
+                    : query.OrderByDescending(e => e.PlayCount).ThenByDescending(e => e.Id),
+
+                _ => asc
+                    ? query.OrderBy(e => e.PublishedDate ?? e.CreatedAt).ThenBy(e => e.Id)
+                    : query.OrderByDescending(e => e.PublishedDate ?? e.CreatedAt).ThenByDescending(e => e.Id),
+            };
+
             var raw = await query
-                .OrderByDescending(e => e.PublishedDate ?? e.CreatedAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(e => new
@@ -62,6 +80,7 @@ namespace PersonalPodcast.Controllers
                         .Select(ec => ec.Category!.Name)
                 })
                 .ToListAsync();
+
 
             var items = raw.Select(e => new EpisodeSearchItemDto
             {
