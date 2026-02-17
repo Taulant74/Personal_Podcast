@@ -1,9 +1,10 @@
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using PersonalPodcast.Data;
 using PersonalPodcast.Services;
-
-
+using System.Text;
 
 // e loadim .env file ku e kena rujt konfigurimin e cloudinary
 Env.Load();
@@ -13,6 +14,29 @@ Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLO
 
 var builder = WebApplication.CreateBuilder(args);
 
+//----------------------------------------------//
+// Vendosni sherbimet tjera posht qetij komenti,
+// Mos e kaloni builder.build()
+//----------------------------------------------//
+
+//Jwt
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.Zero,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+    };
+});
+
+//cloudinary
 builder.Services.AddScoped<CloudinaryService>();
 
 // Databaza
@@ -36,6 +60,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 app.Run();
