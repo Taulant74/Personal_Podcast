@@ -83,5 +83,56 @@ namespace PersonalPodcast.Controllers
                 Items = items
             });
         }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<EpisodeDetailsDto>> GetById([FromRoute] int id)
+        {
+            var raw = await _db.Episodes
+                .AsNoTracking()
+                .Where(e => e.IsPublished && e.Id == id)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Title,
+                    e.Description,
+                    e.AudioUrl,
+                    e.DurationSeconds,
+                    e.Season,
+                    e.IsPublished,
+                    e.PublishedDate,
+                    e.PlayCount,
+                    e.CreatedAt,
+                    Categories = e.EpisodeCategories
+                        .Where(ec => ec.Category != null)
+                        .Select(ec => ec.Category!.Name)
+                })
+                .FirstOrDefaultAsync();
+
+            if (raw == null)
+            {
+                return NotFound(new { message = "Episode not found." });
+            }
+
+            var dto = new EpisodeDetailsDto
+            {
+                Id = raw.Id,
+                Title = raw.Title,
+                Description = raw.Description,
+                AudioUrl = raw.AudioUrl,
+                DurationSeconds = raw.DurationSeconds,
+                Season = raw.Season,
+                IsPublished = raw.IsPublished,
+                PublishedDate = raw.PublishedDate,
+                PlayCount = raw.PlayCount,
+                CreatedAt = raw.CreatedAt,
+                Categories = raw.Categories
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct()
+                    .ToList()
+            };
+
+            return Ok(dto);
+        }
+
     }
 }
