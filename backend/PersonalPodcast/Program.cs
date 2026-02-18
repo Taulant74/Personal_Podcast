@@ -1,9 +1,11 @@
 using DotNetEnv;
-<<<<<<< HEAD
+
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-=======
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
->>>>>>> main
+
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PersonalPodcast.Data;
@@ -18,7 +20,7 @@ Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLO
 
 var builder = WebApplication.CreateBuilder(args);
 
-<<<<<<< HEAD
+
 // CORS policy per me lan backendin me komuniku me frontin 
 builder.Services.AddCors(options =>
 {
@@ -32,7 +34,7 @@ builder.Services.AddCors(options =>
 });
 
 
-=======
+
 //----------------------------------------------//
 // Vendosni sherbimet tjera posht qetij komenti,
 // Mos e kaloni builder.build()
@@ -57,12 +59,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 //cloudinary
 builder.Services.AddScoped<CloudinaryService>();
->>>>>>> main
+
+
 
 // Databaza
 builder.Services.AddDbContext<PodcastDbContext>(options =>
                                                //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Controllerat
 builder.Services.AddControllers();
