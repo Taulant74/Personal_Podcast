@@ -37,8 +37,7 @@ namespace PersonalPodcast.Controllers
                 query = query.Where(e =>
                     EF.Functions.Like(e.Title, $"%{term}%") ||
                     (e.Description != null && EF.Functions.Like(e.Description, $"%{term}%")) ||
-                    e.EpisodeCategories.Any(ec =>
-                        ec.Category != null && EF.Functions.Like(ec.Category.Name, $"%{term}%"))
+                    (e.Category != null && EF.Functions.Like(e.Category, $"%{term}%"))
                 );
             }
 
@@ -57,9 +56,7 @@ namespace PersonalPodcast.Controllers
                     e.DurationSeconds,
                     e.PublishedDate,
                     e.PlayCount,
-                    Categories = e.EpisodeCategories
-                        .Where(ec => ec.Category != null)
-                        .Select(ec => ec.Category!.Name)
+                    e.Category
                 })
                 .ToListAsync();
 
@@ -72,7 +69,7 @@ namespace PersonalPodcast.Controllers
                 DurationSeconds = e.DurationSeconds,
                 PublishedDate = e.PublishedDate,
                 PlayCount = e.PlayCount,
-                Categories = e.Categories.ToList()
+                Category = e.Category
             }).ToList();
 
             return Ok(new PagedResultDto<EpisodeSearchItemDto>
@@ -82,6 +79,49 @@ namespace PersonalPodcast.Controllers
                 Total = total,
                 Items = items
             });
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<EpisodeDetailsDto>> GetById([FromRoute] int id)
+        {
+            var raw = await _db.Episodes
+                .AsNoTracking()
+                .Where(e => e.IsPublished && e.Id == id)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Title,
+                    e.Description,
+                    e.AudioUrl,
+                    e.DurationSeconds,
+                    e.Season,
+                    e.IsPublished,
+                    e.PublishedDate,
+                    e.PlayCount,
+                    e.CreatedAt,
+                    e.Category
+                })
+                .FirstOrDefaultAsync();
+
+            if (raw == null)
+                return NotFound(new { message = "Episode not found." });
+
+            var dto = new EpisodeDetailsDto
+            {
+                Id = raw.Id,
+                Title = raw.Title,
+                Description = raw.Description,
+                AudioUrl = raw.AudioUrl,
+                DurationSeconds = raw.DurationSeconds,
+                Season = raw.Season,
+                IsPublished = raw.IsPublished,
+                PublishedDate = raw.PublishedDate,
+                PlayCount = raw.PlayCount,
+                CreatedAt = raw.CreatedAt,
+                Category = raw.Category
+            };
+
+            return Ok(dto);
         }
     }
 }

@@ -10,6 +10,6 @@
         public int DurationSeconds { get; set; }
         public DateTime? PublishedDate { get; set; }
         public int PlayCount { get; set; }
-        public List<string> Categories { get; set; } = new();
+        public string? Category { get; set; }
     }
 }
