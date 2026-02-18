@@ -37,7 +37,8 @@ namespace PersonalPodcast.Controllers
                 query = query.Where(e =>
                     EF.Functions.Like(e.Title, $"%{term}%") ||
                     (e.Description != null && EF.Functions.Like(e.Description, $"%{term}%")) ||
-                    (e.Category != null && EF.Functions.Like(e.Category, $"%{term}%"))
+                    e.EpisodeCategories.Any(ec =>
+                        ec.Category != null && EF.Functions.Like(ec.Category.Name, $"%{term}%"))
                 );
             }
 
@@ -56,7 +57,9 @@ namespace PersonalPodcast.Controllers
                     e.DurationSeconds,
                     e.PublishedDate,
                     e.PlayCount,
-                    e.Category
+                    Categories = e.EpisodeCategories
+                        .Where(ec => ec.Category != null)
+                        .Select(ec => ec.Category!.Name)
                 })
                 .ToListAsync();
 
@@ -69,7 +72,7 @@ namespace PersonalPodcast.Controllers
                 DurationSeconds = e.DurationSeconds,
                 PublishedDate = e.PublishedDate,
                 PlayCount = e.PlayCount,
-                Category = e.Category
+                Categories = e.Categories.ToList()
             }).ToList();
 
             return Ok(new PagedResultDto<EpisodeSearchItemDto>
@@ -99,12 +102,16 @@ namespace PersonalPodcast.Controllers
                     e.PublishedDate,
                     e.PlayCount,
                     e.CreatedAt,
-                    e.Category
+                    Categories = e.EpisodeCategories
+                        .Where(ec => ec.Category != null)
+                        .Select(ec => ec.Category!.Name)
                 })
                 .FirstOrDefaultAsync();
 
             if (raw == null)
+            {
                 return NotFound(new { message = "Episode not found." });
+            }
 
             var dto = new EpisodeDetailsDto
             {
@@ -118,10 +125,14 @@ namespace PersonalPodcast.Controllers
                 PublishedDate = raw.PublishedDate,
                 PlayCount = raw.PlayCount,
                 CreatedAt = raw.CreatedAt,
-                Category = raw.Category
+                Categories = raw.Categories
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct()
+                    .ToList()
             };
 
             return Ok(dto);
         }
+
     }
 }

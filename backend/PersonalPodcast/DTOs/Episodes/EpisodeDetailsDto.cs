@@ -15,6 +15,6 @@ namespace PersonalPodcast.DTOs.Episodes
         public int PlayCount { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        public string? Category { get; set; }
+        public List<string> Categories { get; set; } = new();
     }
 }
