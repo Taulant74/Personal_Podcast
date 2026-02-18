@@ -1,4 +1,5 @@
 using DotNetEnv;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
 using PersonalPodcast.Services;
@@ -13,7 +14,19 @@ Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLO
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddScoped<CloudinaryService>();
+// CORS policy per me lan backendin me komuniku me frontin 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") // e boni me origjinen e frontit t juve deri te hostojna frontin
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
+
 
 // Databaza
 builder.Services.AddDbContext<PodcastDbContext>(options =>
@@ -23,11 +36,29 @@ builder.Services.AddDbContext<PodcastDbContext>(options =>
 // Controllerat
 builder.Services.AddControllers();
 
+
+builder.Services.AddScoped<CloudinaryService>();
+
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB 
+});
+
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
+});
+
+
+  
 // Swaggeri
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseCors("AllowFrontend");
+
 
 if (app.Environment.IsDevelopment())
 {

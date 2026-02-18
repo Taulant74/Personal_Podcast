@@ -20,19 +20,47 @@ public class CloudinaryService
 
     public async Task<string> UploadAudioAsync(IFormFile file)
     {
-        await using var stream = file.OpenReadStream();
+        if (file == null || file.Length == 0)
+            throw new Exception("Audio file is missing.");
 
-        var uploadParams = new VideoUploadParams
+        var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}");
+
+        await using (var outStream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
         {
-            File = new FileDescription(file.FileName, stream),
-            Folder = "podcast-audio"
-        };
+            await file.CopyToAsync(outStream);
+        }
 
-        var result = await _cloudinary.UploadAsync(uploadParams);
+        try
+        {
+            await using var readStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-        if (result.Error != null)
-            throw new Exception(result.Error.Message);
+            var uploadParams = new VideoUploadParams
+            {
+                File = new FileDescription(Path.GetFileName(tempPath), readStream),
+                Folder = "podcast-audio",
+                UseFilename = true,
+                UniqueFilename = true,
+                Overwrite = false
+            };
 
-        return result.SecureUrl.ToString();
+            var result = await _cloudinary.UploadLargeAsync(uploadParams);
+
+            if (result.Error != null)
+                throw new Exception(result.Error.Message);
+
+            return result.SecureUrl.ToString();
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+            }
+            catch
+            {
+            }
+        }
     }
+
 }
