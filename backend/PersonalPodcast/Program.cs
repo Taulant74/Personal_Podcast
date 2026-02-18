@@ -15,6 +15,7 @@ Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLO
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // CORS policy per me lan backendin me komuniku me frontin 
 builder.Services.AddCors(options =>
 {
@@ -26,6 +27,8 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod();
         });
 });
+
+
 
 //----------------------------------------------//
 // Vendosni sherbimet tjera posht qetij komenti,
@@ -52,10 +55,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 //cloudinary
 builder.Services.AddScoped<CloudinaryService>();
 
+
+
 // Databaza
 builder.Services.AddDbContext<PodcastDbContext>(options =>
                                                //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Controllerat
 builder.Services.AddControllers();

@@ -55,7 +55,7 @@ namespace PersonalPodcast.Data
                     .HasMaxLength(128)
                     .IsUnicode(false);
 
-                entity.Property(u => u.Role)    
+                entity.Property(u => u.Role)
                     .IsRequired()
                     .HasMaxLength(20)
                     .IsUnicode(false)
