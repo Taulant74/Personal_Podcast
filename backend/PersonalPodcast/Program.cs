@@ -1,5 +1,13 @@
 using DotNetEnv;
+<<<<<<< Updated upstream
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+=======
+
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
+>>>>>>> Stashed changes
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PersonalPodcast.Data;
@@ -14,6 +22,22 @@ Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLO
 
 var builder = WebApplication.CreateBuilder(args);
 
+<<<<<<< Updated upstream
+=======
+// CORS policy per me lan backendin me komuniku me frontin 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") // e boni me origjinen e frontit t juve deri te hostojna frontin
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
+
+>>>>>>> Stashed changes
 //----------------------------------------------//
 // Vendosni sherbimet tjera posht qetij komenti,
 // Mos e kaloni builder.build()
@@ -38,6 +62,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 //cloudinary
 builder.Services.AddScoped<CloudinaryService>();
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 
 // Databaza
 builder.Services.AddDbContext<PodcastDbContext>(options =>
