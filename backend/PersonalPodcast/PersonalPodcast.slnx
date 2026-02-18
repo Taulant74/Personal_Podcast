@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../PersonalPodcast.Tests/PersonalPodcast.Tests.csproj" Id="d2a1e7e1-9fdb-4aac-90c8-d71bcbc15edb" />
   <Project Path="PersonalPodcast.csproj" />
 </Solution>
