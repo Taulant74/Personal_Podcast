@@ -6,5 +6,8 @@
         public string? Q { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
+        public string? SortBy { get; set; }   // "date" (default), "title", "playCount"
+        public string? SortDir { get; set; }  // "asc" ose "desc" (default "desc")
+
     }
 }
