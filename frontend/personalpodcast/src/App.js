@@ -5,7 +5,7 @@ import EpisodesUpload from './pages/EpisodesUpload';
 function Home() {
   return (
     <div style={{ padding: 20 }}>
-      <h2>Podcast Platform</h2>
+      <h2>Podcast Platform Test</h2>
       <p>Welcome to the homepage.</p>
       <Link to="/episodes">Go to Upload & Search Episodes</Link>
     </div>
