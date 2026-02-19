@@ -1,6 +1,8 @@
+using CloudinaryDotNet;
 using DotNetEnv;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PersonalPodcast.Data;
@@ -52,9 +54,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
-//cloudinary
-builder.Services.AddScoped<CloudinaryService>();
+// Cloudinary
+builder.Services.AddSingleton(sp =>
+{
+    var cloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
+    var apiKey = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
+    var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
 
+    if (string.IsNullOrWhiteSpace(cloudName) ||
+        string.IsNullOrWhiteSpace(apiKey) ||
+        string.IsNullOrWhiteSpace(apiSecret))
+    {
+        throw new Exception("Cloudinary env vars missing. Check CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET");
+    }
+
+    var cloudinary = new Cloudinary(new Account(cloudName, apiKey, apiSecret));
+
+    cloudinary.Api.Timeout = 10 * 60 * 1000; // 10 minutes
+
+    return cloudinary;
+});
+
+builder.Services.AddScoped<CloudinaryService>();
 
 
 // Databaza
@@ -66,7 +87,6 @@ builder.Services.AddDbContext<PodcastDbContext>(options =>
 builder.Services.AddControllers();
 
 
-builder.Services.AddScoped<CloudinaryService>();
 
 builder.Services.Configure<IISServerOptions>(options =>
 {
