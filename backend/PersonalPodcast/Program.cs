@@ -81,7 +81,7 @@ builder.Services.AddScoped<CloudinaryService>();
 // Databaza
 builder.Services.AddDbContext<PodcastDbContext>(options =>
                                                //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
 
 // Controllerat
 builder.Services.AddControllers();
