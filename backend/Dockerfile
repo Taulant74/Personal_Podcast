@@ -1,6 +1,3 @@
-# backend/Dockerfile
-
-# ===== Build stage =====
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["PersonalPodcast/PersonalPodcast.csproj", "PersonalPodcast/"]
