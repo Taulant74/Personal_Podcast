@@ -4,6 +4,7 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import EpisodesUpload from './pages/EpisodesUpload';
 import HomePage from "./pages/HomePage";
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -98,6 +99,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/episodes" element={<EpisodesUpload />} />
+          <Route path='/admin' element={<AdminDashboard/>}/>
         </Routes>
       </div>
     </Router>

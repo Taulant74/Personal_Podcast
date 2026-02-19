@@ -7,60 +7,33 @@ public class CloudinaryService
 {
     private readonly Cloudinary _cloudinary;
 
-    public CloudinaryService()
+    public CloudinaryService(Cloudinary cloudinary)
     {
-        var cloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
-        var apiKey = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
-        var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
-
-        var account = new Account(cloudName, apiKey, apiSecret);
-        _cloudinary = new Cloudinary(account);
-        _cloudinary.Api.Secure = true;
+        _cloudinary = cloudinary;
     }
 
     public async Task<string> UploadAudioAsync(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            throw new Exception("Audio file is missing.");
+            throw new ArgumentException("File is empty.");
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}");
+        await using var stream = file.OpenReadStream();
 
-        await using (var outStream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+        var uploadParams = new VideoUploadParams
         {
-            await file.CopyToAsync(outStream);
-        }
+            File = new FileDescription(file.FileName, stream),
+            Folder = "podcast_episodes",
+            UseFilename = true,
+            UniqueFilename = true,
+            Overwrite = true
+        };
 
-        try
-        {
-            await using var readStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var result = await _cloudinary.UploadAsync(uploadParams);
 
-            var uploadParams = new VideoUploadParams
-            {
-                File = new FileDescription(Path.GetFileName(tempPath), readStream),
-                Folder = "podcast-audio",
-                UseFilename = true,
-                UniqueFilename = true,
-                Overwrite = false
-            };
+        if (result.Error != null)
+            throw new Exception($"Cloudinary error: {result.Error.Message}");
 
-            var result = await _cloudinary.UploadLargeAsync(uploadParams);
-
-            if (result.Error != null)
-                throw new Exception(result.Error.Message);
-
-            return result.SecureUrl.ToString();
-        }
-        finally
-        {
-            try
-            {
-                if (File.Exists(tempPath))
-                    File.Delete(tempPath);
-            }
-            catch
-            {
-            }
-        }
+        return result.SecureUrl?.ToString()
+               ?? throw new Exception("Cloudinary did not return a URL.");
     }
-
 }
