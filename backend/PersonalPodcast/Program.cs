@@ -1,6 +1,8 @@
+using CloudinaryDotNet;
 using DotNetEnv;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PersonalPodcast.Data;
@@ -24,7 +26,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins("http://localhost:3000") // e boni me origjinen e frontit t juve deri te hostojna frontin
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod() // nese do te dergojme cookies nga fronti, e boni me kete rresht
+                  .AllowCredentials(); 
         });
 });
 
@@ -52,21 +55,41 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
-//cloudinary
+// Cloudinary
+builder.Services.AddSingleton(sp =>
+{
+    var cloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
+    var apiKey = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
+    var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
+
+    if (string.IsNullOrWhiteSpace(cloudName) ||
+        string.IsNullOrWhiteSpace(apiKey) ||
+        string.IsNullOrWhiteSpace(apiSecret))
+    {
+        throw new Exception("Cloudinary env vars missing. Check CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET");
+    }
+
+    var cloudinary = new Cloudinary(new Account(cloudName, apiKey, apiSecret));
+
+    cloudinary.Api.Timeout = 10 * 60 * 1000; // 10 minutes
+
+    return cloudinary;
+});
+
 builder.Services.AddScoped<CloudinaryService>();
 
 
-
 // Databaza
+var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+
 builder.Services.AddDbContext<PodcastDbContext>(options =>
                                                //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Controllerat
 builder.Services.AddControllers();
 
 
-builder.Services.AddScoped<CloudinaryService>();
 
 builder.Services.Configure<IISServerOptions>(options =>
 {
