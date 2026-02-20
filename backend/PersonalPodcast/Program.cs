@@ -79,9 +79,10 @@ builder.Services.AddScoped<CloudinaryService>();
 
 
 // Databaza
+var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+
 builder.Services.AddDbContext<PodcastDbContext>(options =>
-                                               //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 // Controllerat
 builder.Services.AddControllers();
