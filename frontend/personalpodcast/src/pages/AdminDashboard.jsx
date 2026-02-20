@@ -6,7 +6,6 @@ const ADMIN_URL = `${API_BASE}/api/Admin`;
 const emptyCreate = {
   title: "",
   description: "",
-  durationSeconds: "",
   category: "",
   season: "",
   isPublished: true,
@@ -29,7 +28,6 @@ function secondsToMinSec(seconds) {
 }
 
 export default function AdminDashboard() {
-
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -40,17 +38,15 @@ export default function AdminDashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
 
-  
   const [createForm, setCreateForm] = useState({ ...emptyCreate });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
-    durationSeconds: "",
     category: "",
     season: "",
     isPublished: true,
-    file: null, 
+    file: null,
   });
 
   async function fetchJsonOrTextError(res) {
@@ -102,7 +98,6 @@ export default function AdminDashboard() {
     setEditForm({
       title: episode.title || "",
       description: episode.description || "",
-      durationSeconds: String(episode.durationSeconds ?? ""),
       category: episode.category || "",
       season: episode.season === null || episode.season === undefined ? "" : String(episode.season),
       isPublished: !!episode.isPublished,
@@ -122,7 +117,6 @@ export default function AdminDashboard() {
 
     fd.append("title", form.title ?? "");
     fd.append("description", form.description ?? "");
-    fd.append("durationSeconds", String(form.durationSeconds ?? ""));
     fd.append("category", form.category ?? "");
 
     if (form.season !== "" && form.season !== null && form.season !== undefined) {
@@ -146,8 +140,6 @@ export default function AdminDashboard() {
 
     try {
       if (!createForm.title.trim()) throw new Error("Title is required.");
-      const dur = Number(createForm.durationSeconds);
-      if (!Number.isFinite(dur) || dur <= 0) throw new Error("Duration must be greater than 0.");
       if (!createForm.file) throw new Error("Audio file is required.");
 
       const fd = buildFormData(createForm, true);
@@ -175,8 +167,6 @@ export default function AdminDashboard() {
     try {
       if (!editId) throw new Error("Missing episode id.");
       if (!editForm.title.trim()) throw new Error("Title is required.");
-      const dur = Number(editForm.durationSeconds);
-      if (!Number.isFinite(dur) || dur <= 0) throw new Error("Duration must be greater than 0.");
 
       const fd = buildFormData(editForm, false);
 
@@ -341,7 +331,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Create Modelin */}
       {showCreate ? (
         <Modal title="Create Episode" onClose={closeModals}>
           <EpisodeForm
@@ -397,18 +386,6 @@ function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile }) {
             value={form.description}
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
             placeholder="Description (optional)"
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Duration (seconds)</label>
-          <input
-            className="form-control"
-            type="number"
-            min="1"
-            value={form.durationSeconds}
-            onChange={(e) => setForm((p) => ({ ...p, durationSeconds: e.target.value }))}
-            placeholder="e.g. 3600"
           />
         </div>
 
