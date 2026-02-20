@@ -4,11 +4,7 @@ import axios from "axios";
 export default function EpisodesUpload() {
 
   const api = useMemo(() => {
-    const baseURL =
-      import.meta.env.VITE_API_BASE_URL ||
-      "https://localhost:7261"; // e boni me origjinen e backut t juve deri te hostojna backun
-
-    const instance = axios.create({ baseURL });
+    const instance = axios.create({ baseURL: "" });
 
     const token = localStorage.getItem("token");
     if (token) instance.defaults.headers.common.Authorization = `Bearer ${token}`;

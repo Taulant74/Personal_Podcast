@@ -83,7 +83,8 @@ builder.Services.AddScoped<CloudinaryService>();
 var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
 
 builder.Services.AddDbContext<PodcastDbContext>(options =>
-    options.UseSqlServer(connectionString));
+                                               //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Controllerat
 builder.Services.AddControllers();
@@ -101,13 +102,15 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 });
 
 
-  
+
 // Swaggeri
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.MapHealthChecks("/health");
 app.UseCors("AllowFrontend");
 
 
@@ -117,7 +120,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PodcastDbContext>();
+    //db.Database.Migrate();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
