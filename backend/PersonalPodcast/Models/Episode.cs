@@ -4,6 +4,8 @@
     public class Episode
     {
         public int Id { get; set; }
+
+        // public int PublsherID -> qaj qe e bonn publish
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string AudioUrl { get; set; } = string.Empty;

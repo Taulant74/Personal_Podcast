@@ -4,7 +4,7 @@ import axios from "axios";
 export default function HomePage() {
   const api = useMemo(() => {
     return axios.create({
-      baseURL: "https://localhost:7261",// qeta e leni sipas portit t backendit local deri te hostojm backendin
+      baseURL: "https://localhost:7261", // qeta e leni sipas portit t backendit local deri te hostojm backendin
     });
   }, []);
 
@@ -12,42 +12,85 @@ export default function HomePage() {
   const [msg, setMsg] = useState("Loading episodes...");
   const [loading, setLoading] = useState(false);
 
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(12);
+  const [total, setTotal] = useState(0);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAll() {
+    const t = setTimeout(async () => {
       try {
         setLoading(true);
-        setMsg("Loading episodes...");
+        setMsg(query.trim() ? "Searching episodes..." : "Loading episodes...");
 
-        const res = await api.get("/api/getepisodes");
-        const data = Array.isArray(res.data) ? res.data : [];
+        const res = await api.get("/api/Episodes/search", {
+          params: {
+            Q: query.trim() || undefined,
+            Page: page,
+            PageSize: pageSize,
+          },
+        });
+
+        const data = res.data || {};
+        const items = Array.isArray(data.items)
+          ? data.items
+          : Array.isArray(data.Items)
+          ? data.Items
+          : [];
+
+        const totalCount =
+          typeof data.total === "number"
+            ? data.total
+            : typeof data.Total === "number"
+            ? data.Total
+            : 0;
 
         if (!cancelled) {
-          setEpisodes(data);
-          setMsg(data.length ? "" : "No episodes yet. Upload one from the admin page.");
+          setEpisodes(items);
+          setTotal(totalCount);
+
+          if (query.trim()) {
+            setMsg(items.length ? "" : `No results for "${query.trim()}".`);
+          } else {
+            setMsg(items.length ? "" : "No episodes yet. Upload one from the admin page.");
+          }
         }
       } catch (err) {
         if (!cancelled) {
           setEpisodes([]);
+          setTotal(0);
           setMsg("Failed to load episodes. Check if backend is running and CORS is enabled.");
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
+    }, 350);
 
-    loadAll();
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
-  }, [api]);
+  }, [api, query, page, pageSize]);
 
   function formatDuration(seconds) {
     if (!seconds || Number.isNaN(seconds)) return null;
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}m ${String(s).padStart(2, "0")}s`;
+  }
+
+  function renderCategories(ep) {
+    const cats = Array.isArray(ep?.categories)
+      ? ep.categories
+      : Array.isArray(ep?.Categories)
+      ? ep.Categories
+      : null;
+
+    return cats && cats.length ? <span className="pp-badge">🏷 {cats.join(", ")}</span> : null;
   }
 
   return (
@@ -182,29 +225,116 @@ export default function HomePage() {
           background: rgba(255,255,255,0.04);
           backdrop-filter: blur(12px);
         }
+
+        .pp-search-input::placeholder{
+          color: rgba(233,238,252,0.65) !important;
+          opacity: 1;
+        }
       `}</style>
 
       {/* Contenti */}
-      <div className="container pp-container pb-5">
+      <div className="container pp-container px-5" style={{ backgroundColor: "#37353E" }}>
         <div className="pp-hero">
           <h1 className="pp-title">All episodes. One place.</h1>
-          <p className="pp-subtitle">
-            Browse your entire library and press play instantly - no search needed.
-          </p>
+          <p className="pp-subtitle">Browse your entire library and press play instantly — now with search.</p>
         </div>
 
-        <div className="d-flex align-items-end justify-content-between mb-3">
+        <div className="d-flex flex-wrap gap-2 align-items-end justify-content-between mb-3">
           <div>
             <h4 className="m-0" style={{ fontWeight: 900, letterSpacing: -0.3 }}>
               Episodes
             </h4>
             <div className="pp-muted small">
-              {loading ? "Loading episodes…" : `Total: ${episodes.length}`}
+              {loading ? "Loading…" : `Showing: ${episodes.length} / Total: ${total}`}
             </div>
+          </div>
+
+          <div className="d-flex flex-wrap gap-2 align-items-center">
+            <div className="pp-glass" style={{ padding: 6, borderRadius: 999 }}>
+              <input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search title, description, category…"
+                className="form-control pp-search-input"
+                style={{
+                  width: 280,
+                  border: "none",
+                  background: "transparent",
+                  color: "rgba(233,238,252,0.92)",
+                  outline: "none",
+                  boxShadow: "none",
+                }}
+              />
+            </div>
+
+            <button
+              className="btn pp-glass"
+              onClick={() => {
+                setQuery("");
+                setPage(1);
+              }}
+              disabled={!query.trim()}
+              style={{
+                color: "rgba(233,238,252,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 800,
+                borderRadius: 999,
+                padding: "8px 12px",
+                opacity: query.trim() ? 1 : 0.6,
+                cursor: query.trim() ? "pointer" : "not-allowed",
+              }}
+            >
+              Clear
+            </button>
           </div>
         </div>
 
         {msg && !loading && <div className="alert pp-alert p-4 mb-4">{msg}</div>}
+
+        {!loading && totalPages > 1 && (
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <button
+              className="btn pp-glass"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              style={{
+                color: "rgba(233,238,252,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 800,
+                borderRadius: 999,
+                padding: "8px 12px",
+                opacity: page === 1 ? 0.6 : 1,
+                cursor: page === 1 ? "not-allowed" : "pointer",
+              }}
+            >
+              ← Prev
+            </button>
+
+            <div className="pp-muted small">
+              Page {page} / {totalPages}
+            </div>
+
+            <button
+              className="btn pp-glass"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              style={{
+                color: "rgba(233,238,252,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 800,
+                borderRadius: 999,
+                padding: "8px 12px",
+                opacity: page >= totalPages ? 0.6 : 1,
+                cursor: page >= totalPages ? "not-allowed" : "pointer",
+              }}
+            >
+              Next →
+            </button>
+          </div>
+        )}
 
         {loading && (
           <div className="row g-3">
@@ -228,17 +358,19 @@ export default function HomePage() {
         {!loading && episodes.length > 0 && (
           <div className="row g-3">
             {episodes.map((ep) => (
-              <div className="col-12 col-md-6 col-lg-4" key={ep.id}>
+              <div className="col-12 col-md-6 col-lg-4" key={ep.id ?? ep.Id}>
                 <div className="card pp-glass pp-epCard h-100">
                   <div className="card-body p-4 d-flex flex-column">
                     <div className="pp-cardTop">
                       <div className="flex-grow-1">
-                        <h5 className="pp-epTitle">{ep.title}</h5>
-                        {ep.description && <div className="pp-epDesc">{ep.description}</div>}
+                        <h5 className="pp-epTitle">{ep.title ?? ep.Title}</h5>
+                        {(ep.description ?? ep.Description) && (
+                          <div className="pp-epDesc">{ep.description ?? ep.Description}</div>
+                        )}
                       </div>
 
-                      {ep.audioUrl ? (
-                        <a className="pp-link" href={ep.audioUrl} target="_blank" rel="noreferrer">
+                      {(ep.audioUrl ?? ep.AudioUrl) ? (
+                        <a className="pp-link" href={ep.audioUrl ?? ep.AudioUrl} target="_blank" rel="noreferrer">
                           Open ↗
                         </a>
                       ) : (
@@ -249,18 +381,24 @@ export default function HomePage() {
                     </div>
 
                     <div className="pp-metaRow">
-                      {ep.category && <span className="pp-badge">🏷 {ep.category}</span>}
-                      {ep.season != null && <span className="pp-badge">📺 Season {ep.season}</span>}
-                      {ep.durationSeconds ? (
-                        <span className="pp-badge">⏱ {formatDuration(ep.durationSeconds)}</span>
+                      {renderCategories(ep)}
+                      {(ep.season ?? ep.Season) != null && (
+                        <span className="pp-badge">📺 Season {ep.season ?? ep.Season}</span>
+                      )}
+                      {(ep.durationSeconds ?? ep.DurationSeconds) ? (
+                        <span className="pp-badge">
+                          ⏱ {formatDuration(ep.durationSeconds ?? ep.DurationSeconds)}
+                        </span>
                       ) : null}
-                      {ep.playCount != null && <span className="pp-badge">▶ {ep.playCount} plays</span>}
+                      {(ep.playCount ?? ep.PlayCount) != null && (
+                        <span className="pp-badge">▶ {ep.playCount ?? ep.PlayCount} plays</span>
+                      )}
                     </div>
 
-                    {ep.audioUrl ? (
+                    {(ep.audioUrl ?? ep.AudioUrl) ? (
                       <div className="pp-audioWrap mt-auto">
                         <audio controls>
-                          <source src={ep.audioUrl} />
+                          <source src={ep.audioUrl ?? ep.AudioUrl} />
                         </audio>
                       </div>
                     ) : (

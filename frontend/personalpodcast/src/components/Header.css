@@ -1,0 +1,39 @@
+.nav-link-custom {
+  color: #D3DAD9;
+  transition: all 0.3s ease;
+}
+
+.nav-link-custom.active {
+  color: #DDA853 !important; 
+  font-weight: bold;
+}
+
+.nav-link-custom:hover {
+  color: #ffffff;
+}
+
+.btn-login-custom {
+  color: #D3DAD9 !important;
+  border: 1px solid #D3DAD9 !important;
+  background-color: transparent;
+  transition: all 0.4s ease;
+}
+
+.btn-login-custom:hover {
+  background-color: #D3DAD9 !important;
+  color: #44444E !important;
+}
+
+.btn-signup-custom {
+  background-color: #D3DAD9 !important;
+  border: 1px solid #D3DAD9 !important;
+  color: #44444E !important;
+  border: none;
+  transition: all 0.4s ease;
+}
+
+.btn-signup-custom:hover {
+  background-color: #DDA853 !important;
+  border: 1px solid #DDA853 !important;
+  color: #ffffff !important;
+}
