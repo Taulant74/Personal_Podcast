@@ -10,7 +10,6 @@
         public string? Description { get; set; }
         public string AudioUrl { get; set; } = string.Empty;
         public int DurationSeconds { get; set; }
-        public string? Category { get; set; }
         public int? Season { get; set; }
         public bool IsPublished { get; set; }
         public DateTime? PublishedDate { get; set; }
