@@ -102,6 +102,12 @@ if (!app.Environment.IsProduction())
     app.UseHttpsRedirection();
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PodcastDbContext>();
+    //db.Database.Migrate();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
