@@ -26,7 +26,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins("http://localhost:3000") // e boni me origjinen e frontit t juve deri te hostojna frontin
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod() // nese do te dergojme cookies nga fronti, e boni me kete rresht
+                  .AllowCredentials(); 
         });
 });
 
@@ -81,7 +82,7 @@ builder.Services.AddScoped<CloudinaryService>();
 // Databaza
 builder.Services.AddDbContext<PodcastDbContext>(options =>
                                                //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Controllerat
 builder.Services.AddControllers();
