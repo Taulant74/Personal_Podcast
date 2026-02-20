@@ -12,7 +12,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -21,6 +21,12 @@ function RegisterPage() {
       [name]: value,
     }));
   };
+
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      navigate('/');
+    }
+  }, [isLoggedIn, navigate]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -45,8 +51,7 @@ function RegisterPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Use the login function from context which handles token storage and state
-        login(data.AccessToken);
+        login(data.accessToken);
         navigate('/');
       } else {
         setError(data.message || 'Registration failed');
@@ -60,100 +65,94 @@ function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Sign Up</h1>
-          <p className="text-gray-300 mb-6">Create your Personal Podcast account</p>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center px-4">
+      <div className="w-100" style={{ maxWidth: '500px' }}>
+        <div className="card bg-dark text-white">
+          <div className="card-body">
+            <h1 className="card-title mb-2">Sign Up</h1>
+            <p className="card-text mb-4">Create your Personal Podcast account</p>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg mb-4">
-              {error}
-            </div>
-          )}
+            {error && (
+              <div className="alert alert-danger" role="alert">
+                {error}
+              </div>
+            )}
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Username
-              </label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition"
-                placeholder="Choose a username"
-                required
-              />
-            </div>
+            <form onSubmit={handleRegister}>
+              <div className="mb-3">
+                <label className="form-label">Username</label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  className="form-control bg-secondary text-white"
+                  placeholder="Choose a username"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                First Name
-              </label>
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition"
-                placeholder="Your first name"
-                required
-              />
-            </div>
+              <div className="mb-3">
+                <label className="form-label">First Name</label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="form-control bg-secondary text-white"
+                  placeholder="Your first name"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Last Name
-              </label>
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition"
-                placeholder="Your last name"
-                required
-              />
-            </div>
+              <div className="mb-3">
+                <label className="form-label">Last Name</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="form-control bg-secondary text-white"
+                  placeholder="Your last name"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition"
-                placeholder="At least 8 characters, 1 letter, 1 number"
-                required
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Password must be at least 8 characters with at least one letter and one number
-              </p>
-            </div>
+              <div className="mb-3">
+                <label className="form-label">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="form-control bg-secondary text-white"
+                  placeholder="At least 8 characters, 1 letter, 1 number"
+                  required
+                />
+                <div className="form-text text-white">
+                  Password must be at least 8 characters with at least one letter and one number
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2 px-4 bg-gradient-to-r from-indigo-600 to-green-500 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-green-600 disabled:opacity-50 transition"
-            >
-              {loading ? 'Creating account...' : 'Sign Up'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary w-100"
+              >
+                {loading ? 'Creating account...' : 'Sign Up'}
+              </button>
+            </form>
 
-          <p className="text-gray-300 text-center mt-6">
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              className="text-indigo-400 hover:text-indigo-300 font-semibold"
-            >
-              Login
-            </button>
-          </p>
+            <p className="text-center mt-4 mb-0">
+              Already have an account?{' '}
+              <button
+                onClick={() => navigate('/login')}
+                className="btn btn-link text-white p-0"
+              >
+                Login
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

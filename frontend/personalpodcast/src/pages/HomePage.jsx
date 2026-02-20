@@ -185,7 +185,7 @@ export default function HomePage() {
       `}</style>
 
       {/* Contenti */}
-      <div className="container pp-container pb-5">
+      <div className="container pp-container px-5" style={{ backgroundColor: "#37353E" }}>
         <div className="pp-hero">
           <h1 className="pp-title">All episodes. One place.</h1>
           <p className="pp-subtitle">

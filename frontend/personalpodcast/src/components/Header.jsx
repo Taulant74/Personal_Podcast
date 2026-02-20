@@ -1,75 +1,48 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react'
+import { NavLink, Link } from "react-router-dom"; // Import NavLink
+import './Header.css';
 import { useAuth } from '../context/AuthContext';
 
 function Header() {
   const { isLoggedIn, username, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
 
   return (
-    <header className="bg-red-900/5 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
-      <div class="alert alert-primary" role="alert">
-        A simple primary alert—check it out!
+    <nav className="d-flex align-items-center justify-content-between p-3 shadow-sm" style={{ backgroundColor: "#44444E" }}>
+      <div className="d-flex align-items-center gap-2">
+        <Link to="/" className="text-decoration-none d-flex align-items-center gap-2">
+          <img src="/PPlogo.png" style={{ height: "50px" }} alt="Logo" className="w-20 p-1" />
+          <h3 style={{ color: "#D3DAD9", margin: 0 }}>Personal Podcast</h3>
+        </Link>
       </div>
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo and Navigation */}
-          <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition">
-              <span className="text-2xl">🎧</span>
-              <span className="font-bold text-xl text-white hidden sm:inline">Personal Podcast</span>
-            </Link>
 
-            <nav className="flex items-center gap-6">
-              <a href="/" className="text-gray-300 hover:text-white font-medium transition">
-                Home
-              </a>
-              <a href="/episodes" className="text-gray-300 hover:text-white font-medium transition">
-                Episodes
-              </a>
-            </nav>
-          </div>
-
-          {/* Auth Buttons or User Info */}
-          <div className="flex items-center gap-4">
-            {isLoggedIn ? (
-              <>
-                <span className="text-gray-300 font-medium hidden sm:inline">
-                  {username}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-red-600/80 hover:bg-red-700 text-white font-medium rounded-lg transition"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="px-4 py-2 text-gray-300 hover:text-white font-medium transition"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-green-500 hover:from-indigo-700 hover:to-green-600 text-white font-medium rounded-lg transition"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
+      <div className="d-flex align-items-center gap-5">
+        {/* NavLink automatically monitors the URL */}
+        <NavLink to="/" className="text-decoration-none nav-link-custom">Home</NavLink>
+        <NavLink to="/episodes" className="text-decoration-none nav-link-custom">Episodes</NavLink>
+        <NavLink to="/publishers" className="text-decoration-none nav-link-custom">Publishers</NavLink>
+        <NavLink to="/categories" className="text-decoration-none nav-link-custom">Categories</NavLink>
       </div>
-    </header>
-  );
+
+      <div className="d-flex align-items-center gap-2">
+        {isLoggedIn ? (
+          <>
+            <span className="text-white">{username}</span>
+            <button
+              onClick={logout}
+              className="btn btn-outline-light btn-sm px-4 py-2"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="btn btn-login-custom btn-sm px-4 py-2">Login</Link>
+            <Link to="/register" className="btn btn-signup-custom btn-sm px-4 py-2">Sign Up</Link>
+          </>
+        )}
+      </div>
+    </nav>
+  )
 }
 
-export default Header;
+export default Header

@@ -2,6 +2,15 @@
   text-align: center;
 }
 
+html, body, #root {
+  background-color: #37353E;
+}
+
+/* dark page background */
+body {
+  background-color: #37353E;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
