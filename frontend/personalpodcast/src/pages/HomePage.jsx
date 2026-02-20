@@ -12,7 +12,6 @@ export default function HomePage() {
   const [msg, setMsg] = useState("Loading episodes...");
   const [loading, setLoading] = useState(false);
 
-  // ✅ search + paging state (MUST be inside HomePage)
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize] = useState(12);
@@ -28,7 +27,6 @@ export default function HomePage() {
         setLoading(true);
         setMsg(query.trim() ? "Searching episodes..." : "Loading episodes...");
 
-        // ✅ your backend endpoint: GET /api/Episodes/search
         const res = await api.get("/api/Episodes/search", {
           params: {
             Q: query.trim() || undefined,
@@ -37,7 +35,6 @@ export default function HomePage() {
           },
         });
 
-        // ✅ handle camelCase or PascalCase responses safely
         const data = res.data || {};
         const items = Array.isArray(data.items)
           ? data.items
@@ -71,7 +68,7 @@ export default function HomePage() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 350); // debounce
+    }, 350);
 
     return () => {
       cancelled = true;
@@ -86,7 +83,6 @@ export default function HomePage() {
     return `${m}m ${String(s).padStart(2, "0")}s`;
   }
 
-  // ✅ category may come as ep.categories OR ep.Categories (array)
   function renderCategories(ep) {
     const cats = Array.isArray(ep?.categories)
       ? ep.categories
@@ -242,7 +238,6 @@ export default function HomePage() {
           <p className="pp-subtitle">Browse your entire library and press play instantly — now with search.</p>
         </div>
 
-        {/* ✅ Header + Search */}
         <div className="d-flex flex-wrap gap-2 align-items-end justify-content-between mb-3">
           <div>
             <h4 className="m-0" style={{ fontWeight: 900, letterSpacing: -0.3 }}>
@@ -298,7 +293,6 @@ export default function HomePage() {
 
         {msg && !loading && <div className="alert pp-alert p-4 mb-4">{msg}</div>}
 
-        {/* ✅ Pagination */}
         {!loading && totalPages > 1 && (
           <div className="d-flex justify-content-between align-items-center mb-3">
             <button
