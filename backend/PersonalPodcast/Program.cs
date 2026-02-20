@@ -26,7 +26,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins("http://localhost:3000") // e boni me origjinen e frontit t juve deri te hostojna frontin
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod() // nese do te dergojme cookies nga fronti, e boni me kete rresht
+                  .AllowCredentials(); 
         });
 });
 
