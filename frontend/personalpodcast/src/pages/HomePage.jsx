@@ -4,11 +4,7 @@ import axios from "axios";
 export default function HomePage() {
   const api = useMemo(() => {
     return axios.create({
-<<<<<<< HEAD
-      baseURL: "",// qeta e leni sipas portit t backendit local deri te hostojm backendin
-=======
-      baseURL: "https://localhost:7261", // qeta e leni sipas portit t backendit local deri te hostojm backendin
->>>>>>> origin/main
+      baseURL: "",
     });
   }, []);
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-const API_BASE = "https://localhost:7261";
+const API_BASE = "";
 const ADMIN_URL = `${API_BASE}/api/Admin`;
 
 const emptyCreate = {
