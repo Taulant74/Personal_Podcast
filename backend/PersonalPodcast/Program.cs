@@ -100,8 +100,10 @@ builder.Services.Configure<KestrelServerOptions>(options =>
     options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
 });
 
+//user service per me kriju usera prej admindashboardit
+builder.Services.AddScoped<UserService>();
 
-  
+
 // Swaggeri
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
 using PersonalPodcast.Models;
 using PersonalPodcast.Services;
+using PersonalPodcast.DTOs.Users;
 
 namespace PersonalPodcast.Controllers
 {
@@ -13,15 +14,149 @@ namespace PersonalPodcast.Controllers
     {
         private readonly CloudinaryService _cloudinary;
         private readonly PodcastDbContext _db;
+        private readonly UserService _userService;
 
-        public AdminController(PodcastDbContext db, CloudinaryService cloudinary) {
+        public AdminController(PodcastDbContext db, CloudinaryService cloudinary , UserService userService) {
 
+            _userService = userService;
             _cloudinary = cloudinary;
             _db = db;
 
         }
 
-        [HttpGet]
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _db.Users
+                .OrderByDescending(u => u.Id)
+                .Select(u => new UserResponseDto
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Age = u.Age,
+                    Email = u.Email,
+                    Role = u.Role
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
+        [HttpGet("users/{id:int}")]
+        public async Task<IActionResult> GetUserById(int id)
+        {
+            var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == id);
+            if (u == null) return NotFound("User not found.");
+
+            return Ok(new UserResponseDto
+            {
+                Id = u.Id,
+                Username = u.Username,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Age = u.Age,
+                Email = u.Email,
+                Role = u.Role
+            });
+        }
+
+        [HttpPost("users")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto request)
+        {
+            var (ok, error, user) = await _userService.CreateUserAsync(
+                request.Username,
+                request.FirstName,
+                request.LastName,
+                request.Password,
+                request.Role,
+                request.Age,
+                request.Email
+            );
+
+            if (!ok) return BadRequest(error);
+
+            return CreatedAtAction(nameof(GetUserById), new { id = user!.Id }, new UserResponseDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                Role = user.Role
+            });
+        }
+
+
+        [HttpPut("users/{id:int}")]
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto request)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null) return NotFound("User not found.");
+
+            if (string.IsNullOrWhiteSpace(request.Username))
+                return BadRequest("Username is required.");
+
+            if (await _db.Users.AnyAsync(u => u.Username == request.Username && u.Id != id))
+                return BadRequest("Username already exists.");
+
+            if (!string.IsNullOrWhiteSpace(request.Email) &&
+                await _db.Users.AnyAsync(u => u.Email == request.Email && u.Id != id))
+                return BadRequest("Email already exists.");
+
+            user.Username = request.Username.Trim();
+            user.FirstName = request.FirstName.Trim();
+            user.LastName = request.LastName.Trim();
+            user.Age = request.Age;
+            user.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+            user.Role = string.IsNullOrWhiteSpace(request.Role) ? user.Role : request.Role.Trim();
+
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+
+                if (request.Password.Length < 8)
+                    return BadRequest("Password must be at least 8 characters.");
+
+                var salt = BCrypt.Net.BCrypt.GenerateSalt();
+                var hash = BCrypt.Net.BCrypt.HashPassword(request.Password, salt);
+
+                user.PasswordSalt = salt;
+                user.PasswordHash = hash;
+            }
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new UserResponseDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                Role = user.Role
+            });
+        }
+
+        [HttpDelete("users/{id:int}")]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null) return NotFound("User not found.");
+
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
+       
+
+
+        [HttpGet("episodes")]
         public async Task<IActionResult> GetAll()
         {
             var episodes = await _db.Episodes
@@ -33,7 +168,7 @@ namespace PersonalPodcast.Controllers
         }
 
 
-        [HttpPost]
+        [HttpPost("episodes")]
         public async Task<IActionResult> Upload(
         [FromForm] string title,
         [FromForm] string? description,
@@ -58,7 +193,6 @@ namespace PersonalPodcast.Controllers
                 Description = description,
                 AudioUrl = audioUrl,
                 DurationSeconds = Math.Max(durationSeconds, 1),
-                Category = category,
                 Season = season,
                 IsPublished = isPublished,
                 PublishedDate = isPublished ? DateTime.UtcNow : null,
@@ -74,7 +208,7 @@ namespace PersonalPodcast.Controllers
 
 
 
-        [HttpPut("{id:int}")]
+        [HttpPut("episodes/{id:int}")]
         public async Task<IActionResult> Update(
         int id,
         [FromForm] string title,
@@ -94,7 +228,6 @@ namespace PersonalPodcast.Controllers
 
             episode.Title = title.Trim();
             episode.Description = description;
-            episode.Category = category;
             episode.Season = season;
 
             if (!isPublished)
@@ -124,7 +257,7 @@ namespace PersonalPodcast.Controllers
 
 
 
-        [HttpDelete("{id:int}")]
+        [HttpDelete("episodes/{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
             var episode = await _db.Episodes
