@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const API_BASE = "";
 const ADMIN_URL = `${API_BASE}/api/Admin`;
+const CATEGORIES_URL = `${API_BASE}/api/categories`;
 
 const emptyCreate = {
   title: "",
   description: "",
-  category: "",
   season: "",
   isPublished: true,
   file: null,
@@ -40,6 +40,15 @@ export default function AdminDashboard() {
 
   const [createForm, setCreateForm] = useState({ ...emptyCreate });
   const [editId, setEditId] = useState(null);
+
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [editSelectedCategoryIds, setEditSelectedCategoryIds] = useState([]);
+
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
+
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
@@ -71,8 +80,57 @@ export default function AdminDashboard() {
     }
   }
 
+  async function loadCategories() {
+    try {
+      const res = await fetch(CATEGORIES_URL);
+      const out = await fetchJsonOrTextError(res);
+      if (!out.ok) throw new Error(out.error);
+      setCategories(Array.isArray(out.data) ? out.data : []);
+    } catch {
+
+    }
+  }
+
+  function openAddCategory() {
+  resetMessages();
+  setNewCategoryName("");
+  setShowAddCategory(true);
+}
+
+async function handleAddCategorySubmit(e) {
+  e.preventDefault();
+  resetMessages();
+
+  const name = newCategoryName.trim();
+  if (!name) {
+    setErrorMsg("Category name is required.");
+    return;
+  }
+
+  setAddingCategory(true);
+    try {
+      const res = await fetch(CATEGORIES_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+
+      const out = await fetchJsonOrTextError(res);
+      if (!out.ok) throw new Error(out.error);
+
+      setSuccessMsg("Category created.");
+      setShowAddCategory(false);
+      await loadCategories();
+    } catch (e2) {
+      setErrorMsg(e2?.message || "Failed to create category.");
+    } finally {
+      setAddingCategory(false);
+    }
+  }
+
   useEffect(() => {
     loadEpisodes();
+    loadCategories();
   }, []);
 
   const filtered = useMemo(() => {
@@ -89,6 +147,7 @@ export default function AdminDashboard() {
   function openCreate() {
     resetMessages();
     setCreateForm({ ...emptyCreate });
+    setSelectedCategoryIds([]);
     setShowCreate(true);
   }
 
@@ -98,7 +157,6 @@ export default function AdminDashboard() {
     setEditForm({
       title: episode.title || "",
       description: episode.description || "",
-      category: episode.category || "",
       season: episode.season === null || episode.season === undefined ? "" : String(episode.season),
       isPublished: !!episode.isPublished,
       file: null,
@@ -112,27 +170,28 @@ export default function AdminDashboard() {
     setEditId(null);
   }
 
-  function buildFormData(form, requireFile) {
-    const fd = new FormData();
+  function buildFormData(form, requireFile, categoryIds) {
+  const fd = new FormData();
 
-    fd.append("title", form.title ?? "");
-    fd.append("description", form.description ?? "");
-    fd.append("category", form.category ?? "");
+  fd.append("title", form.title ?? "");
+  fd.append("description", form.description ?? "");
 
-    if (form.season !== "" && form.season !== null && form.season !== undefined) {
-      fd.append("season", String(form.season));
-    }
+  fd.append("categoryIds", (categoryIds ?? []).join(","));
 
-    fd.append("isPublished", String(!!form.isPublished));
-
-    if (form.file) {
-      fd.append("file", form.file);
-    } else if (requireFile) {
-      throw new Error("Audio file is required.");
-    }
-
-    return fd;
+  if (form.season !== "" && form.season !== null && form.season !== undefined) {
+    fd.append("season", String(form.season));
   }
+
+  fd.append("isPublished", String(!!form.isPublished));
+
+  if (form.file) {
+    fd.append("file", form.file);
+  } else if (requireFile) {
+    throw new Error("Audio file is required.");
+  }
+
+  return fd;
+}
 
   async function handleCreateSubmit(e) {
     e.preventDefault();
@@ -142,7 +201,7 @@ export default function AdminDashboard() {
       if (!createForm.title.trim()) throw new Error("Title is required.");
       if (!createForm.file) throw new Error("Audio file is required.");
 
-      const fd = buildFormData(createForm, true);
+      const fd = buildFormData(createForm, true, selectedCategoryIds);
 
       const res = await fetch(ADMIN_URL, {
         method: "POST",
@@ -168,7 +227,7 @@ export default function AdminDashboard() {
       if (!editId) throw new Error("Missing episode id.");
       if (!editForm.title.trim()) throw new Error("Title is required.");
 
-      const fd = buildFormData(editForm, false);
+      const fd = buildFormData(editForm, false, editSelectedCategoryIds);
 
       const res = await fetch(`${ADMIN_URL}/${editId}`, {
         method: "PUT",
@@ -221,6 +280,9 @@ export default function AdminDashboard() {
           </button>
           <button className="btn btn-primary" onClick={openCreate}>
             + Create Episode
+          </button>
+          <button className="btn btn-outline-primary" onClick={openAddCategory}>
+            + Add Category
           </button>
         </div>
       </div>
@@ -309,7 +371,7 @@ export default function AdminDashboard() {
                       )}
                     </td>
 
-                    <td>{e.category || "—"}</td>
+                    <td>{Array.isArray(e.categories) && e.categories.length ? e.categories.join(", ") : "—"}</td>
                     <td>{e.season ?? "—"}</td>
                     <td>{secondsToMinSec(e.durationSeconds)}</td>
                     <td>{formatDate(e.publishedDate)}</td>
@@ -338,6 +400,9 @@ export default function AdminDashboard() {
             form={createForm}
             setForm={setCreateForm}
             onSubmit={handleCreateSubmit}
+            categories={categories}
+            selectedIds={selectedCategoryIds}
+            setSelectedIds={setSelectedCategoryIds}
             submitLabel="Create"
             requireFile={true}
           />
@@ -352,6 +417,9 @@ export default function AdminDashboard() {
             form={editForm}
             setForm={setEditForm}
             onSubmit={handleEditSubmit}
+            categories={categories}
+            selectedIds={editSelectedCategoryIds}
+            setSelectedIds={setEditSelectedCategoryIds}
             submitLabel="Save changes"
             requireFile={false}
           />
@@ -360,11 +428,38 @@ export default function AdminDashboard() {
           </div>
         </Modal>
       ) : null}
+
+      {/* Add Category */}
+      {showAddCategory ? (
+        <Modal title="Add Category" onClose={() => setShowAddCategory(false)}>
+          <form onSubmit={handleAddCategorySubmit}>
+            <div className="mb-3">
+              <label className="form-label">Category name</label>
+              <input
+                className="form-control"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g. Tech"
+                autoFocus
+              />
+            </div>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAddCategory(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={addingCategory || !newCategoryName.trim()}>
+                {addingCategory ? "Adding..." : "Add"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
     </div>
   );
 }
 
-function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile }) {
+function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile, categories, selectedIds, setSelectedIds }) {
   return (
     <form onSubmit={onSubmit}>
       <div className="row g-3">
@@ -389,14 +484,31 @@ function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile }) {
           />
         </div>
 
-        <div className="col-md-6">
-          <label className="form-label">Category</label>
-          <input
-            className="form-control"
-            value={form.category}
-            onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-            placeholder="e.g. Tech, Business"
-          />
+        <div className="col-12">
+          <label className="form-label">Categories</label>
+          <div className="d-flex flex-wrap gap-2">
+            {categories?.length ? (
+              categories.map((c) => (
+                <label key={c.id} className="badge text-bg-light" style={{ cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(c.id)}
+                    onChange={() =>
+                      setSelectedIds((prev) =>
+                        prev.includes(c.id)
+                          ? prev.filter((x) => x !== c.id)
+                          : [...prev, c.id]
+                      )
+                    }
+                    style={{ marginRight: 8 }}
+                  />
+                  {c.name}
+                </label>
+              ))
+            ) : (
+              <div className="text-muted small">No categories available.</div>
+            )}
+          </div>
         </div>
 
         <div className="col-md-6">
