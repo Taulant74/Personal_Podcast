@@ -30,6 +30,13 @@ namespace PersonalPodcast.Controllers
         {
             var response = new RegisterResponseDto();
 
+            if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Any(c => !char.IsLetterOrDigit(c)))
+            {
+                response.success = false;
+                response.message = "Username cannot contain symbols. Only letters and numbers are allowed.";
+                return BadRequest(response);
+            }
+
             if (_db.Users.Any(u => u.Username == request.Username))
             {
                 response.success = false;
