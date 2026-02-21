@@ -1,9 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using PersonalPodcast.Data;
 using PersonalPodcast.Data;
 using PersonalPodcast.DTOs.UserDTOs;
+
 using PersonalPodcast.Models;
 
 namespace PersonalPodcast.Services
 {
+   
     public class UserService : IUserService
     {
         private readonly PodcastDbContext _db;

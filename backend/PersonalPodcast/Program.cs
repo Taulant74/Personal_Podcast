@@ -98,15 +98,18 @@ builder.Services.AddScoped<CloudinaryService>();
 
 
 // Databaza
-var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+var cs = Environment.GetEnvironmentVariable("DB_CONNECTION");
+
+if (string.IsNullOrWhiteSpace(cs))
+    throw new Exception("DB_CONNECTION is missing. Put it in .env or environment variables.");
 
 builder.Services.AddDbContext<PodcastDbContext>(options =>
-                                               //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
+    options.UseSqlServer(cs));
 
 // Controllerat
 builder.Services.AddControllers();
 
+builder.Services.AddScoped<UserCreateService>();
 
 
 builder.Services.Configure<IISServerOptions>(options =>
@@ -119,12 +122,17 @@ builder.Services.Configure<KestrelServerOptions>(options =>
     options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
 });
 
+//user service per me kriju usera prej admindashboardit
+builder.Services.AddScoped<UserService>();
 
 
 // Swaggeri
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(t => t.FullName); 
+});
 
 builder.Services.AddScoped<PersonalPodcast.Services.IValidationService, PersonalPodcast.Services.ValidationService>();
 builder.Services.AddScoped<PersonalPodcast.Services.IAuthService, PersonalPodcast.Services.AuthService>();
@@ -133,6 +141,7 @@ builder.Services.AddScoped<PersonalPodcast.Services.IUserService, PersonalPodcas
 var app = builder.Build();
 
 app.MapHealthChecks("/health");
+
 app.UseCors("AllowFrontend");
 
 

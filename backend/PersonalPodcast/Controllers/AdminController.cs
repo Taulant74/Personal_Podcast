@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
+using PersonalPodcast.DTOs.Users;
 using PersonalPodcast.Models;
 using PersonalPodcast.Services;
 
@@ -9,74 +11,182 @@ namespace PersonalPodcast.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+   
     public class AdminController : ControllerBase
     {
         private readonly CloudinaryService _cloudinary;
         private readonly PodcastDbContext _db;
+        private readonly UserCreateService _UserCreateService;
 
-        public AdminController(PodcastDbContext db, CloudinaryService cloudinary)
-        {
+        public AdminController(PodcastDbContext db, CloudinaryService cloudinary , UserCreateService UserCreateService) {
+
+            _UserCreateService = UserCreateService;
             _cloudinary = cloudinary;
             _db = db;
+
         }
 
-        private static List<int> ParseIds(string? csv)
+
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers()
         {
-            if (string.IsNullOrWhiteSpace(csv)) return new List<int>();
+            var users = await _db.Users
+                .OrderByDescending(u => u.Id)
+                .Select(u => new UserResponseDto
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Age = u.Age,
+                    Email = u.Email,
+                    Role = u.Role
+                })
+                .ToListAsync();
 
-            return csv
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Trim())
-                .Select(x => int.TryParse(x, out var v) ? v : (int?)null)
-                .Where(x => x.HasValue && x.Value > 0)
-                .Select(x => x!.Value)
-                .Distinct()
-                .ToList();
+            return Ok(users);
         }
 
-        [HttpGet]
+        [HttpGet("users/{id:int}")]
+        public async Task<IActionResult> GetUserById(int id)
+        {
+            var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == id);
+            if (u == null) return NotFound("User not found.");
+
+            return Ok(new UserResponseDto
+            {
+                Id = u.Id,
+                Username = u.Username,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Age = u.Age,
+                Email = u.Email,
+                Role = u.Role
+            });
+        }
+
+        [HttpPost("users")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto request)
+        {
+            var (ok, error, user) = await _UserCreateService.CreateUserAsync(
+                request.Username,
+                request.FirstName,
+                request.LastName,
+                request.Password,
+                request.Role,
+                request.Age,
+                request.Email
+            );
+
+            if (!ok) return BadRequest(error);
+
+            return CreatedAtAction(nameof(GetUserById), new { id = user!.Id }, new UserResponseDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                Role = user.Role
+            });
+        }
+
+
+        [HttpPut("users/{id:int}")]
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto request)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null) return NotFound("User not found.");
+
+            if (string.IsNullOrWhiteSpace(request.Username))
+                return BadRequest("Username is required.");
+
+            if (await _db.Users.AnyAsync(u => u.Username == request.Username && u.Id != id))
+                return BadRequest("Username already exists.");
+
+            if (!string.IsNullOrWhiteSpace(request.Email) &&
+                await _db.Users.AnyAsync(u => u.Email == request.Email && u.Id != id))
+                return BadRequest("Email already exists.");
+
+            user.Username = request.Username.Trim();
+            user.FirstName = request.FirstName.Trim();
+            user.LastName = request.LastName.Trim();
+            user.Age = request.Age;
+            user.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+            user.Role = string.IsNullOrWhiteSpace(request.Role) ? user.Role : request.Role.Trim();
+
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+
+                if (request.Password.Length < 8)
+                    return BadRequest("Password must be at least 8 characters.");
+
+                var salt = BCrypt.Net.BCrypt.GenerateSalt();
+                var hash = BCrypt.Net.BCrypt.HashPassword(request.Password, salt);
+
+                user.PasswordSalt = salt;
+                user.PasswordHash = hash;
+            }
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new UserResponseDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                Role = user.Role
+            });
+        }
+
+        [HttpDelete("users/{id:int}")]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null) return NotFound("User not found.");
+
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
+       
+
+
+        [HttpGet("episodes")]
         public async Task<IActionResult> GetAll()
         {
             var episodes = await _db.Episodes
-                .AsNoTracking()
                 .Where(e => e.IsPublished)
-                .OrderByDescending(e => e.PublishedDate ?? e.CreatedAt)
-                .Select(e => new
-                {
-                    e.Id,
-                    e.Title,
-                    e.Description,
-                    e.AudioUrl,
-                    e.DurationSeconds,
-                    e.Season,
-                    e.IsPublished,
-                    e.PublishedDate,
-                    e.PlayCount,
-                    e.CreatedAt,
-                    Categories = e.EpisodeCategories
-                        .Where(ec => ec.Category != null)
-                        .Select(ec => ec.Category!.Name)
-                        .ToList()
-                })
+                .OrderByDescending(e => e.PublishedDate)
                 .ToListAsync();
 
             return Ok(episodes);
         }
 
-        [HttpPost]
+
+        [HttpPost("episodes")]
         public async Task<IActionResult> Upload(
-            [FromForm] string title,
-            [FromForm] string? description,
-            [FromForm] string? categoryIds,
-            [FromForm] int? season,
-            [FromForm] bool isPublished,
-            IFormFile file)
+        [FromForm] string title,
+        [FromForm] string? description,
+        [FromForm] string? category,
+        [FromForm] int? season,
+        [FromForm] bool isPublished,
+        IFormFile file)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return BadRequest("Title is required.");
 
+
             if (file == null || file.Length == 0)
                 return BadRequest("Audio file is required.");
+
 
             var (audioUrl, durationSeconds) = await _cloudinary.UploadAudioAsync(file);
 
@@ -93,45 +203,25 @@ namespace PersonalPodcast.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            var ids = ParseIds(categoryIds);
-
-            if (ids.Count > 0)
-            {
-                var cats = await _db.Categories
-                    .Where(c => ids.Contains(c.Id))
-                    .ToListAsync();
-
-                if (cats.Count != ids.Count)
-                    return BadRequest("One or more categoryIds are invalid.");
-
-                foreach (var c in cats)
-                {
-                    episode.EpisodeCategories.Add(new EpisodeCategory
-                    {
-                        CategoryId = c.Id
-                    });
-                }
-            }
-
             _db.Episodes.Add(episode);
             await _db.SaveChangesAsync();
 
             return Ok(episode);
         }
 
-        [HttpPut("{id:int}")]
+
+
+        [HttpPut("episodes/{id:int}")]
         public async Task<IActionResult> Update(
-            int id,
-            [FromForm] string title,
-            [FromForm] string? description,
-            [FromForm] string? categoryIds,
-            [FromForm] int? season,
-            [FromForm] bool isPublished,
-            IFormFile? file)
+        int id,
+        [FromForm] string title,
+        [FromForm] string? description,
+        [FromForm] string? category,
+        [FromForm] int? season,
+        [FromForm] bool isPublished,
+        IFormFile? file)
         {
-            var episode = await _db.Episodes
-                .Include(e => e.EpisodeCategories)
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var episode = await _db.Episodes.FirstOrDefaultAsync(e => e.Id == id);
 
             if (episode == null)
                 return NotFound("Episode not found.");
@@ -156,29 +246,6 @@ namespace PersonalPodcast.Controllers
                 episode.IsPublished = true;
             }
 
-            var ids = ParseIds(categoryIds);
-
-            episode.EpisodeCategories.Clear();
-
-            if (ids.Count > 0)
-            {
-                var cats = await _db.Categories
-                    .Where(c => ids.Contains(c.Id))
-                    .ToListAsync();
-
-                if (cats.Count != ids.Count)
-                    return BadRequest("One or more categoryIds are invalid.");
-
-                foreach (var c in cats)
-                {
-                    episode.EpisodeCategories.Add(new EpisodeCategory
-                    {
-                        EpisodeId = episode.Id,
-                        CategoryId = c.Id
-                    });
-                }
-            }
-
             if (file != null && file.Length > 0)
             {
                 var (newAudioUrl, newDurationSeconds) = await _cloudinary.UploadAudioAsync(file);
@@ -190,11 +257,15 @@ namespace PersonalPodcast.Controllers
             return Ok(episode);
         }
 
-        [HttpDelete("{id:int}")]
+
+
+
+
+        [HttpDelete("episodes/{id:int}")]
+
         public async Task<IActionResult> Delete(int id)
         {
             var episode = await _db.Episodes
-                .Include(e => e.EpisodeCategories)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (episode == null)
