@@ -22,7 +22,7 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://localhost:7261/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ function LoginPage() {
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center px-4">
       <div className="w-100" style={{ maxWidth: '400px' }}>
-        <div className="card bg-dark text-white">
+        <div className="card text-white p-4 rounded-4 shadow-lg" style={{ backgroundColor: "#44444E" }}>
           <div className="card-body">
             <h1 className="card-title mb-2">Login</h1>
             <p className="card-text mb-4">Welcome back to Personal Podcast</p>

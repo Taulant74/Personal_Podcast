@@ -1,28 +1,31 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
+using PersonalPodcast.DTOs.Users;
 using PersonalPodcast.Models;
 using PersonalPodcast.Services;
-using PersonalPodcast.DTOs.Users;
 
 namespace PersonalPodcast.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+   
     public class AdminController : ControllerBase
     {
         private readonly CloudinaryService _cloudinary;
         private readonly PodcastDbContext _db;
-        private readonly UserService _userService;
+        private readonly UserCreateService _UserCreateService;
 
-        public AdminController(PodcastDbContext db, CloudinaryService cloudinary , UserService userService) {
+        public AdminController(PodcastDbContext db, CloudinaryService cloudinary , UserCreateService UserCreateService) {
 
-            _userService = userService;
+            _UserCreateService = UserCreateService;
             _cloudinary = cloudinary;
             _db = db;
 
         }
+
 
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers()
@@ -65,7 +68,7 @@ namespace PersonalPodcast.Controllers
         [HttpPost("users")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDto request)
         {
-            var (ok, error, user) = await _userService.CreateUserAsync(
+            var (ok, error, user) = await _UserCreateService.CreateUserAsync(
                 request.Username,
                 request.FirstName,
                 request.LastName,
@@ -257,7 +260,9 @@ namespace PersonalPodcast.Controllers
 
 
 
+
         [HttpDelete("episodes/{id:int}")]
+
         public async Task<IActionResult> Delete(int id)
         {
             var episode = await _db.Episodes
@@ -271,10 +276,5 @@ namespace PersonalPodcast.Controllers
 
             return NoContent();
         }
-
-
-
-
-
     }
 }

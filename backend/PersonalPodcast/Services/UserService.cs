@@ -1,74 +1,110 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
+using PersonalPodcast.Data;
+using PersonalPodcast.DTOs.UserDTOs;
+
 using PersonalPodcast.Models;
 
 namespace PersonalPodcast.Services
 {
-    public class UserService
+   
+    public class UserService : IUserService
     {
         private readonly PodcastDbContext _db;
+        private readonly IValidationService _validation;
 
-        public UserService(PodcastDbContext db)
+        public UserService(PodcastDbContext db, IValidationService validation)
         {
             _db = db;
+            _validation = validation;
         }
 
-        public async Task<(bool ok, string? error, User? user)> CreateUserAsync(
-            string username,
-            string firstName,
-            string lastName,
-            string password,
-            string role = "User",
-            int? age = null,
-            string? email = null)
+        public async Task<GetUserDto?> GetByIdAsync(int id)
         {
-            if (string.IsNullOrWhiteSpace(username))
-                return (false, "Username is required.", null);
+            var user = await _db.Users.FindAsync(id);
+            if (user == null)
+                return null;
 
-            if (!IsValidPassword(password))
-                return (false, "Password must be at least 8 characters long and contain at least one letter and one number.", null);
-
-            if (await _db.Users.AnyAsync(u => u.Username == username))
-                return (false, "Username already exists.", null);
-
-            if (!string.IsNullOrWhiteSpace(email) && await _db.Users.AnyAsync(u => u.Email == email))
-                return (false, "Email already exists.", null);
-
-            var salt = BCrypt.Net.BCrypt.GenerateSalt();
-            var hash = BCrypt.Net.BCrypt.HashPassword(password, salt);
-
-            var user = new User
+            return new GetUserDto
             {
-                Username = username.Trim(),
-                FirstName = firstName.Trim(),
-                LastName = lastName.Trim(),
-                Age = age,
-                Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
-                Role = string.IsNullOrWhiteSpace(role) ? "User" : role.Trim(),
-                PasswordSalt = salt,
-                PasswordHash = hash,
-                CreatedAt = DateTime.UtcNow
+                Id = user.Id,
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt
             };
+        }
 
-            _db.Users.Add(user);
+        public async Task<(GetUserDto? dto, string? error)> UpdateAsync(int id, UpdateUserDto request)
+        {
+            var user = await _db.Users.FindAsync(id);
+            if (user == null)
+                return (null, "User not found.");
+
+            if (!string.IsNullOrEmpty(request.Username))
+            {
+                if (!_validation.IsValidUsername(request.Username))
+                    return (null, "Username cannot contain symbols. Only letters and numbers are allowed.");
+
+                if (_db.Users.Any(u => u.Username == request.Username && u.Id != id))
+                    return (null, "Username already exists.");
+
+                user.Username = request.Username;
+            }
+
+            if (!string.IsNullOrEmpty(request.FirstName))
+                user.FirstName = request.FirstName;
+
+            if (!string.IsNullOrEmpty(request.LastName))
+                user.LastName = request.LastName;
+
+            if (request.Age.HasValue)
+                user.Age = request.Age.Value;
+
+            if (!string.IsNullOrEmpty(request.Email))
+            {
+                if (!_validation.IsValidEmail(request.Email))
+                    return (null, "Invalid email format.");
+
+                user.Email = request.Email;
+            }
+
+            if (!string.IsNullOrEmpty(request.Role))
+            {
+                // Role change permission should be enforced by controller
+                user.Role = request.Role;
+            }
+
             await _db.SaveChangesAsync();
 
-            return (true, null, user);
+            var dto = new GetUserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Age = user.Age,
+                Email = user.Email,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt
+            };
+
+            return (dto, null);
         }
 
-        private bool IsValidPassword(string? password)
+        public async Task<(bool success, string? error)> DeleteAsync(int id)
         {
-            if (string.IsNullOrEmpty(password)) return false;
-            if (password.Length < 8) return false;
+            var user = await _db.Users.FindAsync(id);
+            if (user == null)
+                return (false, "User not found.");
 
-            bool hasLetter = false, hasDigit = false;
-            foreach (var c in password)
-            {
-                if (char.IsLetter(c)) hasLetter = true;
-                if (char.IsDigit(c)) hasDigit = true;
-                if (hasLetter && hasDigit) return true;
-            }
-            return false;
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+
+            return (true, null);
         }
     }
 }

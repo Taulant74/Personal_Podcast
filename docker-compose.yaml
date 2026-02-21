@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  api:
+    image: alpine/socat
+    container_name: personalpodcast-api-proxy
+    command: "TCP-LISTEN:8080,fork,reuseaddr TCP:host.docker.internal:5297"
+    ports:
+      - "8080:8080"
+    networks:
+      - podcast-net
+
+  frontend:
+    build:
+      context: ./frontend/personalpodcast
+      dockerfile: Dockerfile
+    container_name: personalpodcast-fe
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - podcast-net
+
+networks:
+  podcast-net:
+    driver: bridge

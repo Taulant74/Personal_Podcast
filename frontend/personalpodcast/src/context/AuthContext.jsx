@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await fetch('https://localhost:7261/api/auth/logout', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
 
   const refreshAccessToken = async () => {
     try {
-      const response = await fetch('https://localhost:7261/api/auth/refresh-token', {
+      const response = await fetch('/api/auth/refresh-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

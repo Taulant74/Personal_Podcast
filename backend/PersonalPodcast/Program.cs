@@ -39,21 +39,39 @@ builder.Services.AddCors(options =>
 //----------------------------------------------//
 
 //Jwt
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
-{
-
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ClockSkew = TimeSpan.Zero,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-    };
-});
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                Console.WriteLine("=== JWT AUTH FAILED ===");
+                Console.WriteLine(ctx.Exception.ToString());
+                Console.WriteLine("=======================");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                Console.WriteLine("=== JWT VALIDATED ===");
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 // Cloudinary
 builder.Services.AddSingleton(sp =>
@@ -80,14 +98,18 @@ builder.Services.AddScoped<CloudinaryService>();
 
 
 // Databaza
-var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+var cs = Environment.GetEnvironmentVariable("DB_CONNECTION");
+
+if (string.IsNullOrWhiteSpace(cs))
+    throw new Exception("DB_CONNECTION is missing. Put it in .env or environment variables.");
 
 builder.Services.AddDbContext<PodcastDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(cs));
 
 // Controllerat
 builder.Services.AddControllers();
 
+builder.Services.AddScoped<UserCreateService>();
 
 
 builder.Services.Configure<IISServerOptions>(options =>
@@ -105,10 +127,20 @@ builder.Services.AddScoped<UserService>();
 
 
 // Swaggeri
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(t => t.FullName); 
+});
+
+builder.Services.AddScoped<PersonalPodcast.Services.IValidationService, PersonalPodcast.Services.ValidationService>();
+builder.Services.AddScoped<PersonalPodcast.Services.IAuthService, PersonalPodcast.Services.AuthService>();
+builder.Services.AddScoped<PersonalPodcast.Services.IUserService, PersonalPodcast.Services.UserService>();
 
 var app = builder.Build();
+
+app.MapHealthChecks("/health");
 
 app.UseCors("AllowFrontend");
 
@@ -119,7 +151,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PodcastDbContext>();
+    //db.Database.Migrate();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
