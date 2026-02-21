@@ -2,9 +2,19 @@ version: "3.9"
 
 services:
   api:
-    image: alpine/socat
-    container_name: personalpodcast-api-proxy
-    command: "TCP-LISTEN:8080,fork,reuseaddr TCP:host.docker.internal:5297"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: personalpodcast-api
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__PersonalPodcastDatabase: "${ConnectionStrings__PersonalPodcastDatabase}"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
     ports:
       - "8080:8080"
     networks:
