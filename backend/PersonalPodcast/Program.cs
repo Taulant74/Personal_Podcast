@@ -39,21 +39,39 @@ builder.Services.AddCors(options =>
 //----------------------------------------------//
 
 //Jwt
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
-{
-
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ClockSkew = TimeSpan.Zero,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-    };
-});
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                Console.WriteLine("=== JWT AUTH FAILED ===");
+                Console.WriteLine(ctx.Exception.ToString());
+                Console.WriteLine("=======================");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                Console.WriteLine("=== JWT VALIDATED ===");
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 // Cloudinary
 builder.Services.AddSingleton(sp =>
@@ -84,7 +102,7 @@ var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
 
 builder.Services.AddDbContext<PodcastDbContext>(options =>
                                                //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
 
 // Controllerat
 builder.Services.AddControllers();
@@ -107,6 +125,10 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<PersonalPodcast.Services.IValidationService, PersonalPodcast.Services.ValidationService>();
+builder.Services.AddScoped<PersonalPodcast.Services.IAuthService, PersonalPodcast.Services.AuthService>();
+builder.Services.AddScoped<PersonalPodcast.Services.IUserService, PersonalPodcast.Services.UserService>();
 
 var app = builder.Build();
 
