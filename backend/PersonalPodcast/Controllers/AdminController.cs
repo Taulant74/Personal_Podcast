@@ -121,9 +121,6 @@ namespace PersonalPodcast.Controllers
             return Ok(episode);
         }
 
-
-
-
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -138,10 +135,5 @@ namespace PersonalPodcast.Controllers
 
             return NoContent();
         }
-
-
-
-
-
     }
 }

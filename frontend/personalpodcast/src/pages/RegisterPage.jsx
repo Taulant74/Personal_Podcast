@@ -67,7 +67,7 @@ function RegisterPage() {
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center px-4">
       <div className="w-100" style={{ maxWidth: '500px' }}>
-        <div className="card bg-dark text-white">
+        <div className="card text-white p-4 rounded-4 shadow-lg" style={{ backgroundColor: "#44444E" }}>
           <div className="card-body">
             <h1 className="card-title mb-2">Sign Up</h1>
             <p className="card-text mb-4">Create your Personal Podcast account</p>
