@@ -33,7 +33,6 @@ namespace PersonalPodcast.Controllers
 
             var callerId = int.Parse(callerIdClaim);
 
-            // allow if caller is admin or requesting their own user
             if (callerId != id && !string.Equals(callerRole, "Admin", StringComparison.OrdinalIgnoreCase))
                 return Forbid();
 
@@ -58,11 +57,19 @@ namespace PersonalPodcast.Controllers
             if (callerId != id && !string.Equals(callerRole, "Admin", StringComparison.OrdinalIgnoreCase))
                 return Forbid();
 
-            // Enforce role change permission in controller
             if (!string.IsNullOrEmpty(request.Role) && !string.Equals(callerRole, "Admin", StringComparison.OrdinalIgnoreCase))
                 return Forbid();
 
+            if (!string.IsNullOrEmpty(request.Password))
+            {
+                if (!_validation.IsValidPassword(request.Password)) 
+                {
+                    return BadRequest("Password must be at least 8 characters long,must have a letter and a number.");
+                }
+            }
+
             var (dto, error) = await _userService.UpdateAsync(id, request);
+
             if (!string.IsNullOrEmpty(error))
                 return BadRequest(error);
 

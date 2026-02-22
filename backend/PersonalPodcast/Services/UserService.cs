@@ -74,8 +74,19 @@ namespace PersonalPodcast.Services
 
             if (!string.IsNullOrEmpty(request.Role))
             {
-                // Role change permission should be enforced by controller
                 user.Role = request.Role;
+            }
+
+            if (!string.IsNullOrEmpty(request.Password))
+            {
+                var existingSalt = user.PasswordSalt;
+
+                if (string.IsNullOrEmpty(existingSalt))
+                    return (null, "Password salt missing.");
+
+                var newHash = BCrypt.Net.BCrypt.HashPassword(request.Password, existingSalt);
+
+                user.PasswordHash = newHash;
             }
 
             await _db.SaveChangesAsync();

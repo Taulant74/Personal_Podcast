@@ -58,22 +58,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
             NameClaimType = "unique_name"
         };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = ctx =>
-            {
-                Console.WriteLine("=== JWT AUTH FAILED ===");
-                Console.WriteLine(ctx.Exception.ToString());
-                Console.WriteLine("=======================");
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = ctx =>
-            {
-                Console.WriteLine("=== JWT VALIDATED ===");
-                return Task.CompletedTask;
-            }
-        };
     });
 
 // Cloudinary
@@ -146,7 +130,6 @@ var app = builder.Build();
 app.MapHealthChecks("/health");
 
 app.UseCors("AllowFrontend");
-
 
 if (app.Environment.IsDevelopment())
 {
