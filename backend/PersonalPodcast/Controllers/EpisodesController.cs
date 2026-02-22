@@ -24,7 +24,7 @@ namespace PersonalPodcast.Controllers
 
             if (request.Page < 1) request.Page = 1;
             if (request.PageSize < 1) request.PageSize = 10;
-            if (request.PageSize > 50) request.PageSize = 30;
+            if (request.PageSize > 50) request.PageSize = 50;
 
             var query = _db.Episodes
                 .AsNoTracking()
