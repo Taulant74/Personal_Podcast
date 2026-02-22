@@ -22,7 +22,7 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('https://localhost:7261/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -6,6 +6,8 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
+  // added to track user roles from the JWT
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,6 +24,19 @@ export function AuthProvider({ children }) {
                           || 'User';
         setUsername(nameClaim);
         setIsLoggedIn(true);
+        // extract role(s) from the token as well
+        const rawRole = decoded.role 
+                      || decoded.roles 
+                      || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
+                      || [];
+        let roleArray = [];
+        if (typeof rawRole === 'string') {
+          // some tokens send a single role string or comma separated
+          roleArray = rawRole.includes(',') ? rawRole.split(',').map(r=>r.trim()) : [rawRole];
+        } else if (Array.isArray(rawRole)) {
+          roleArray = rawRole;
+        }
+        setRoles(roleArray);
       } catch (err) {
         console.error('Invalid token:', err);
         localStorage.removeItem('accessToken');
@@ -41,6 +56,18 @@ export function AuthProvider({ children }) {
                         || 'User';
       setUsername(nameClaim);
       setIsLoggedIn(true);
+      // also decode roles when logging in directly
+      const rawRole = decoded.role 
+                    || decoded.roles 
+                    || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
+                    || [];
+      let roleArray = [];
+      if (typeof rawRole === 'string') {
+        roleArray = rawRole.includes(',') ? rawRole.split(',').map(r=>r.trim()) : [rawRole];
+      } else if (Array.isArray(rawRole)) {
+        roleArray = rawRole;
+      }
+      setRoles(roleArray);
       localStorage.setItem('accessToken', token);
     } catch (err) {
       console.error('Invalid token:', err);
@@ -50,7 +77,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch('https://localhost:7261/api/auth/logout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -68,12 +95,12 @@ export function AuthProvider({ children }) {
 
   const refreshAccessToken = async () => {
     try {
-      const response = await fetch('/api/auth/refresh-token', {
+      const response = await fetch('https://localhost:7261/api/auth/refresh-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // CRITICAL: This sends the HttpOnly cookie!
+        credentials: 'include', 
       });
 
       if (response.ok) {
@@ -82,7 +109,6 @@ export function AuthProvider({ children }) {
         login(data.accessToken); 
         return data.accessToken;
       } else {
-        // If the refresh token is expired too, log them out
         logout();
       }
     } catch (err) {
@@ -92,7 +118,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, username, loading, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, username, roles, loading, login, logout, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

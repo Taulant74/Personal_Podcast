@@ -9,5 +9,6 @@ namespace PersonalPodcast.DTOs.UserDTOs
         public string? Email { get; set; }
         // Optional role change - only applied when the caller is an admin
         public string? Role { get; set; }
+        public string? Password { get; set; } = null;
     }
 }

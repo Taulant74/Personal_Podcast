@@ -55,22 +55,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = ctx =>
-            {
-                Console.WriteLine("=== JWT AUTH FAILED ===");
-                Console.WriteLine(ctx.Exception.ToString());
-                Console.WriteLine("=======================");
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = ctx =>
-            {
-                Console.WriteLine("=== JWT VALIDATED ===");
-                return Task.CompletedTask;
-            }
-        };
     });
 
 // Cloudinary
@@ -143,7 +127,6 @@ var app = builder.Build();
 app.MapHealthChecks("/health");
 
 app.UseCors("AllowFrontend");
-
 
 if (app.Environment.IsDevelopment())
 {

@@ -12,6 +12,7 @@ import RegisterPage from './pages/RegisterPage';
 import CategoryPage from './pages/CategoryPage';
 import PublisherPage from './pages/PublisherPage';
 import { AuthProvider } from './context/AuthContext';
+import UserPanelPage from './pages/UserPanelPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           {/* Faqet */}
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/user-panel/:username" element={<UserPanelPage />} />
             <Route path="/episodes" element={<EpisodePage />} />
             <Route path="/episode-upload" element={<EpisodesUpload />} />
             <Route path="/admin" element={<AdminDashboard />} />
