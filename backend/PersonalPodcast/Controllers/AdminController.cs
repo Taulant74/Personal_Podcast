@@ -165,27 +165,32 @@ namespace PersonalPodcast.Controllers
 
         private async Task<object?> BuildEpisodeResponse(int episodeId)
         {
-            return await _db.Episodes
+            var episode = await _db.Episodes
                 .AsNoTracking()
-                .Where(e => e.Id == episodeId)
-                .Select(e => new
-                {
-                    id = e.Id,
-                    title = e.Title,
-                    description = e.Description,
-                    audioUrl = e.AudioUrl,
-                    durationSeconds = e.DurationSeconds,
-                    season = e.Season,
-                    isPublished = e.IsPublished,
-                    publishedDate = e.PublishedDate,
-                    playCount = e.PlayCount,
-                    createdAt = e.CreatedAt,
-                    categories = e.EpisodeCategories
-                        .Where(ec => ec.Category != null)
-                        .Select(ec => ec.Category!.Name)
-                        .ToList()
-                })
-                .FirstOrDefaultAsync();
+                .Include(e => e.EpisodeCategories)
+                    .ThenInclude(ec => ec.Category)
+                .FirstOrDefaultAsync(e => e.Id == episodeId);
+
+            if (episode == null) return null;
+
+            return new
+            {
+                id = episode.Id,
+                title = episode.Title,
+                description = episode.Description,
+                audioUrl = episode.AudioUrl,
+                durationSeconds = episode.DurationSeconds,
+                season = episode.Season,
+                isPublished = episode.IsPublished,
+                publishedDate = episode.PublishedDate,
+                playCount = episode.PlayCount,
+                createdAt = episode.CreatedAt,
+                categories = episode.EpisodeCategories
+                    .Where(ec => ec.Category != null)
+                    .Select(ec => ec.Category!.Name)
+                    .Distinct()
+                    .ToList()
+            };
         }
 
         [HttpGet("episodes")]
@@ -194,6 +199,8 @@ namespace PersonalPodcast.Controllers
             var episodes = await _db.Episodes
                 .AsNoTracking()
                 .Where(e => e.IsPublished)
+                .Include(e => e.EpisodeCategories)
+                    .ThenInclude(ec => ec.Category)
                 .OrderByDescending(e => e.PublishedDate)
                 .Select(e => new
                 {
@@ -210,6 +217,7 @@ namespace PersonalPodcast.Controllers
                     categories = e.EpisodeCategories
                         .Where(ec => ec.Category != null)
                         .Select(ec => ec.Category!.Name)
+                        .Distinct()
                         .ToList()
                 })
                 .ToListAsync();

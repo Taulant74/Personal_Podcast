@@ -222,7 +222,6 @@ export default function AdminDashboard() {
       if (!out.ok) throw new Error(out.error);
 
       const list = Array.isArray(out.data) ? out.data : [];
-      console.log("episodeCategories sample:", list[0]?.episodeCategories);
       setEpisodes(list);
     } catch (e) {
       setErrorMsg(e?.message || "Failed to load episodes.");
@@ -286,9 +285,7 @@ export default function AdminDashboard() {
     fd.append("title", form.title ?? "");
     fd.append("description", form.description ?? "");
 
-    (categoryIds ?? []).forEach((id) => {
-      fd.append("categoryIds", String(id));
-    });
+    fd.append("categoryIds", (categoryIds ?? []).join(","));
 
     if (form.season !== "" && form.season !== null && form.season !== undefined) {
       fd.append("season", String(form.season));
