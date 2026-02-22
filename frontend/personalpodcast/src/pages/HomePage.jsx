@@ -149,14 +149,12 @@ export default function HomePage() {
           gap: 14px;
           align-items:flex-start;
         }
-
         .pp-epTitle{
           font-weight: 900;
           letter-spacing: -0.3px;
           margin: 0;
           font-size: 1.1rem;
         }
-
         .pp-epDesc{
           margin-top: 10px;
           color: rgba(233,238,252,0.78);

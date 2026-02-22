@@ -13,6 +13,7 @@ import CategoryPage from './pages/CategoryPage';
 import PublisherPage from './pages/PublisherPage';
 import { AuthProvider } from './context/AuthContext';
 import UserPanelPage from './pages/UserPanelPage';
+import RequireAdmin from "./components/RequireAdmin";
 
 function App() {
   return (
@@ -27,7 +28,9 @@ function App() {
             <Route path="/user-panel/:username" element={<UserPanelPage />} />
             <Route path="/episodes" element={<EpisodePage />} />
             <Route path="/episode-upload" element={<EpisodesUpload />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route element={<RequireAdmin />}>
+        <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/categories" element={<CategoryPage />} />

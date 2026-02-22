@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-const API_BASE = "";
+const API_BASE = "https://localhost:7261";
 const ADMIN_URL = `${API_BASE}/api/Admin`;
 const ADMIN_EPISODES_URL = `${ADMIN_URL}/episodes`;
 const ADMIN_USERS_URL = `${ADMIN_URL}/users`;
@@ -42,7 +42,6 @@ function secondsToMinSec(seconds) {
 export default function AdminDashboard() {
   const [tab, setTab] = useState("episodes");
 
-  // Episodes state
   const [episodes, setEpisodes] = useState([]);
   const [episodesLoading, setEpisodesLoading] = useState(false);
   const [episodeQuery, setEpisodeQuery] = useState("");
@@ -60,7 +59,6 @@ export default function AdminDashboard() {
     file: null,
   });
 
-  // Users state
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userQuery, setUserQuery] = useState("");
@@ -76,10 +74,9 @@ export default function AdminDashboard() {
     age: "",
     email: "",
     role: "User",
-    password: "", // optional on edit
+    password: "", 
   });
 
-  // Shared messages
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -94,14 +91,21 @@ export default function AdminDashboard() {
     return { ok: false, error: txt || `Request failed (${res.status})` };
   }
 
-  // -----------------------
-  // EPISODES API
-  // -----------------------
+const getToken = () => localStorage.getItem("accessToken");
+
+const authHeaders = (extra = {}) => {
+  const t = getToken();
+  return t ? { ...extra, Authorization: `Bearer ${t}` } : extra;
+};
+
   async function loadEpisodes() {
     setEpisodesLoading(true);
     resetMessages();
     try {
-      const res = await fetch(ADMIN_EPISODES_URL, { method: "GET" });
+      const res = await fetch(ADMIN_EPISODES_URL, {
+  method: "GET",
+  headers: authHeaders(),
+});
       const out = await fetchJsonOrTextError(res);
       if (!out.ok) throw new Error(out.error);
       setEpisodes(Array.isArray(out.data) ? out.data : []);
@@ -161,9 +165,11 @@ export default function AdminDashboard() {
       const fd = buildEpisodeFormData(createEpisodeForm, true);
 
       const res = await fetch(ADMIN_EPISODES_URL, {
-        method: "POST",
-        body: fd,
-      });
+  method: "POST",
+  headers: authHeaders(),
+  body: fd,
+});
+      
 
       const out = await fetchJsonOrTextError(res);
       if (!out.ok) throw new Error(out.error);
@@ -186,9 +192,12 @@ export default function AdminDashboard() {
 
       const fd = buildEpisodeFormData(editEpisodeForm, false);
 
+
+
       const res = await fetch(`${ADMIN_EPISODES_URL}/${editEpisodeId}`, {
         method: "PUT",
-        body: fd,
+         headers: authHeaders(),
+  body: fd,
       });
 
       const out = await fetchJsonOrTextError(res);
@@ -209,7 +218,8 @@ export default function AdminDashboard() {
     if (!ok) return;
 
     try {
-      const res = await fetch(`${ADMIN_EPISODES_URL}/${id}`, { method: "DELETE" });
+      
+      const res = await fetch(`${ADMIN_EPISODES_URL}/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok && res.status !== 204) {
         const txt = await res.text().catch(() => "");
         throw new Error(txt || `Delete failed (${res.status})`);
@@ -228,14 +238,12 @@ export default function AdminDashboard() {
     return episodes.filter((e) => (e?.title || "").toLowerCase().includes(q));
   }, [episodes, episodeQuery]);
 
-  // -----------------------
-  // USERS API
-  // -----------------------
   async function loadUsers() {
     setUsersLoading(true);
     resetMessages();
     try {
-      const res = await fetch(ADMIN_USERS_URL, { method: "GET" });
+      
+      const res = await fetch(ADMIN_USERS_URL, { method: "GET", headers: authHeaders() });
       const out = await fetchJsonOrTextError(res);
       if (!out.ok) throw new Error(out.error);
       setUsers(Array.isArray(out.data) ? out.data : []);
@@ -262,7 +270,7 @@ export default function AdminDashboard() {
       age: u.age === null || u.age === undefined ? "" : String(u.age),
       email: u.email || "",
       role: u.role || "User",
-      password: "", // only if changing
+      password: "", 
     });
     setShowEditUser(true);
   }
@@ -284,7 +292,6 @@ export default function AdminDashboard() {
     if (includePassword) {
       payload.password = form.password || "";
     } else if (form.password?.trim()) {
-      // optional password change on edit
       payload.password = form.password;
     }
 
@@ -301,9 +308,10 @@ export default function AdminDashboard() {
 
       const body = normalizeUserPayload(createUserForm, true);
 
+      
       const res = await fetch(ADMIN_USERS_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(body),
       });
 
@@ -330,7 +338,7 @@ export default function AdminDashboard() {
 
       const res = await fetch(`${ADMIN_USERS_URL}/${editUserId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(body),
       });
 
@@ -352,7 +360,8 @@ export default function AdminDashboard() {
     if (!ok) return;
 
     try {
-      const res = await fetch(`${ADMIN_USERS_URL}/${id}`, { method: "DELETE" });
+    
+      const res = await fetch(`${ADMIN_USERS_URL}/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok && res.status !== 204) {
         const txt = await res.text().catch(() => "");
         throw new Error(txt || `Delete failed (${res.status})`);
@@ -376,19 +385,15 @@ export default function AdminDashboard() {
     });
   }, [users, userQuery]);
 
-  // -----------------------
-  // Initial loads
-  // -----------------------
   useEffect(() => {
     loadEpisodes();
   }, []);
 
-  // load users only when you open that tab (fast + clean)
   useEffect(() => {
     if (tab === "users" && users.length === 0) {
       loadUsers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [tab]);
 
   function closeModals() {
@@ -432,7 +437,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Tabs */}
       <ul className="nav nav-tabs mb-3">
         <li className="nav-item">
           <button className={`nav-link ${tab === "episodes" ? "active" : ""}`} onClick={() => setTab("episodes")}>
@@ -449,9 +453,6 @@ export default function AdminDashboard() {
       {errorMsg ? <div className="alert alert-danger">{errorMsg}</div> : null}
       {successMsg ? <div className="alert alert-success">{successMsg}</div> : null}
 
-      {/* ===================== */}
-      {/* EPISODES VIEW */}
-      {/* ===================== */}
       {tab === "episodes" ? (
         <>
           <div className="card shadow-sm mb-3">
@@ -548,9 +549,6 @@ export default function AdminDashboard() {
         </>
       ) : null}
 
-      {/* ===================== */}
-      {/* USERS VIEW */}
-      {/* ===================== */}
       {tab === "users" ? (
         <>
           <div className="card shadow-sm mb-3">
@@ -630,7 +628,6 @@ export default function AdminDashboard() {
         </>
       ) : null}
 
-      {/* Modals */}
       {showCreateEpisode ? (
         <Modal title="Create Episode" onClose={closeModals}>
           <EpisodeForm
