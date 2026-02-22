@@ -1,24 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-
-/**
- * HomePage.jsx
- * - Shows episodes (cards)
- * - Search (Q)
- * - Server-side pagination (Page, PageSize)
- * - Prev/Next buttons (- / + style)
- *
- * Expects endpoint:
- *   GET /api/Episodes/search?Q=&Page=&PageSize=
- * Response supports:
- *   { items: [], total: number }  OR  { Items: [], Total: number }
- */
 
 export default function HomePage() {
   const api = useMemo(() => {
     return axios.create({
-      baseURL: "https://localhost:7261",
-      withCredentials: true,
+      baseURL: "",
     });
   }, []);
 
@@ -91,11 +77,10 @@ export default function HomePage() {
   }, [api, query, page, pageSize]);
 
   function formatDuration(seconds) {
-    const s = Number(seconds);
-    if (!Number.isFinite(s) || s <= 0) return null;
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${m}m ${String(r).padStart(2, "0")}s`;
+    if (!seconds || Number.isNaN(seconds)) return null;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${String(s).padStart(2, "0")}s`;
   }
 
   function renderCategories(ep) {
@@ -112,14 +97,6 @@ export default function HomePage() {
     <div>
       <style>{`
         .pp-container{ max-width: 1120px; }
-
-        .pp-root{
-          min-height: 100vh;
-          background: radial-gradient(1000px 700px at 20% -10%, rgba(99,102,241,.35), transparent 60%),
-                      radial-gradient(900px 600px at 90% 0%, rgba(16,185,129,.25), transparent 55%),
-                      #0b1020;
-          color: rgba(255,255,255,.92);
-        }
 
         .pp-hero{ padding: 26px 0 12px; }
         .pp-title{
@@ -253,190 +230,190 @@ export default function HomePage() {
         }
       `}</style>
 
-      <div className="pp-root">
-        <div className="container pp-container py-4">
-          <div className="pp-hero">
-            <h1 className="pp-title">All episodes. One place.</h1>
-            <p className="pp-subtitle">
-              Browse your entire library and press play instantly — now with search.
-            </p>
+      {/* Contenti */}
+      <div className="container pp-container px-5" style={{ backgroundColor: "#37353E" }}>
+        <div className="pp-hero">
+          <h1 className="pp-title">All episodes. One place.</h1>
+          <p className="pp-subtitle">Browse your entire library and press play instantly — now with search.</p>
+        </div>
+
+        <div className="d-flex flex-wrap gap-2 align-items-end justify-content-between mb-3">
+          <div>
+            <h4 className="m-0" style={{ fontWeight: 900, letterSpacing: -0.3 }}>
+              Episodes
+            </h4>
+            <div className="pp-muted small">
+              {loading ? "Loading…" : `Showing: ${episodes.length} / Total: ${total}`}
+            </div>
           </div>
 
-          <div className="d-flex flex-wrap gap-2 align-items-end justify-content-between mb-3">
-            <div>
-              <div className="pp-muted small">
-                {loading ? "Loading…" : `Showing: ${episodes.length} / Total: ${total}`}
-              </div>
-            </div>
-
-            <div className="d-flex flex-wrap gap-2 align-items-center">
-              <div className="pp-glass" style={{ padding: 6, borderRadius: 999 }}>
-                <input
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Search title, description, category…"
-                  className="form-control pp-search-input"
-                  style={{
-                    width: 280,
-                    border: "none",
-                    background: "transparent",
-                    color: "rgba(233,238,252,0.92)",
-                    outline: "none",
-                    boxShadow: "none",
-                  }}
-                />
-              </div>
-
-              <button
-                className="btn pp-glass"
-                onClick={() => {
-                  setQuery("");
+          <div className="d-flex flex-wrap gap-2 align-items-center">
+            <div className="pp-glass" style={{ padding: 6, borderRadius: 999 }}>
+              <input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
                   setPage(1);
                 }}
-                disabled={!query.trim()}
+                placeholder="Search title, description, category…"
+                className="form-control pp-search-input"
                 style={{
+                  width: 280,
+                  border: "none",
+                  background: "transparent",
                   color: "rgba(233,238,252,0.92)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  fontWeight: 800,
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  opacity: query.trim() ? 1 : 0.6,
-                  cursor: query.trim() ? "pointer" : "not-allowed",
+                  outline: "none",
+                  boxShadow: "none",
                 }}
-              >
-                Clear
-              </button>
+              />
             </div>
+
+            <button
+              className="btn pp-glass"
+              onClick={() => {
+                setQuery("");
+                setPage(1);
+              }}
+              disabled={!query.trim()}
+              style={{
+                color: "rgba(233,238,252,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 800,
+                borderRadius: 999,
+                padding: "8px 12px",
+                opacity: query.trim() ? 1 : 0.6,
+                cursor: query.trim() ? "pointer" : "not-allowed",
+              }}
+            >
+              Clear
+            </button>
           </div>
+        </div>
 
-          {msg && !loading && <div className="alert pp-alert p-4 mb-4">{msg}</div>}
+        {msg && !loading && <div className="alert pp-alert p-4 mb-4">{msg}</div>}
 
-          {loading && (
-            <div className="row g-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div className="col-12 col-md-6 col-lg-4" key={i}>
-                  <div className="pp-glass p-3">
-                    <div className="pp-skeleton" style={{ width: "75%", height: 16 }} />
-                    <div className="pp-skeleton" style={{ width: "90%", marginTop: 14 }} />
-                    <div className="pp-skeleton" style={{ width: "80%", marginTop: 10 }} />
-                    <div className="d-flex gap-2 mt-3">
-                      <div className="pp-skeleton" style={{ width: 70, height: 26 }} />
-                      <div className="pp-skeleton" style={{ width: 90, height: 26 }} />
-                    </div>
-                    <div className="pp-skeleton" style={{ height: 38, marginTop: 16 }} />
-                  </div>
-                </div>
-              ))}
+        {!loading && totalPages > 1 && (
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <button
+              className="btn pp-glass"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              style={{
+                color: "rgba(233,238,252,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 800,
+                borderRadius: 999,
+                padding: "8px 12px",
+                opacity: page === 1 ? 0.6 : 1,
+                cursor: page === 1 ? "not-allowed" : "pointer",
+              }}
+            >
+              ← Prev
+            </button>
+
+            <div className="pp-muted small">
+              Page {page} / {totalPages}
             </div>
-          )}
 
-          {!loading && episodes.length > 0 && (
-            <div className="row g-3">
-              {episodes.map((ep) => (
-                <div className="col-12 col-md-6 col-lg-4" key={ep.id ?? ep.Id}>
-                  <div className="pp-glass pp-epCard h-100">
-                    <div className="p-4 d-flex flex-column h-100">
-                      <div className="pp-cardTop">
-                        <div className="flex-grow-1">
-                          <h5 className="pp-epTitle">{ep.title ?? ep.Title}</h5>
-                          {(ep.description ?? ep.Description) && (
-                            <div className="pp-epDesc">{ep.description ?? ep.Description}</div>
-                          )}
-                        </div>
+            <button
+              className="btn pp-glass"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              style={{
+                color: "rgba(233,238,252,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 800,
+                borderRadius: 999,
+                padding: "8px 12px",
+                opacity: page >= totalPages ? 0.6 : 1,
+                cursor: page >= totalPages ? "not-allowed" : "pointer",
+              }}
+            >
+              Next →
+            </button>
+          </div>
+        )}
 
-                        {(ep.audioUrl ?? ep.AudioUrl) ? (
-                          <a className="pp-link" href={ep.audioUrl ?? ep.AudioUrl} target="_blank" rel="noreferrer">
-                            Open ↗
-                          </a>
-                        ) : (
-                          <span className="pp-link" style={{ opacity: 0.6, cursor: "not-allowed" }}>
-                            No audio
-                          </span>
-                        )}
-                      </div>
+        {loading && (
+          <div className="row g-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div className="col-12 col-md-6 col-lg-4" key={i}>
+                <div className="card pp-glass p-3">
+                  <div className="pp-skeleton" style={{ width: "75%", height: 16 }} />
+                  <div className="pp-skeleton mt-3" style={{ width: "90%" }} />
+                  <div className="pp-skeleton mt-2" style={{ width: "80%" }} />
+                  <div className="d-flex gap-2 mt-3">
+                    <div className="pp-skeleton" style={{ width: 70, height: 26 }} />
+                    <div className="pp-skeleton" style={{ width: 90, height: 26 }} />
+                  </div>
+                  <div className="pp-skeleton mt-4" style={{ height: 38 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-                      <div className="pp-metaRow">
-                        {renderCategories(ep)}
-                        {(ep.season ?? ep.Season) != null && (
-                          <span className="pp-badge">📺 Season {ep.season ?? ep.Season}</span>
-                        )}
-                        {(ep.durationSeconds ?? ep.DurationSeconds) ? (
-                          <span className="pp-badge">
-                            ⏱ {formatDuration(ep.durationSeconds ?? ep.DurationSeconds)}
-                          </span>
-                        ) : null}
-                        {(ep.playCount ?? ep.PlayCount) != null && (
-                          <span className="pp-badge">▶ {ep.playCount ?? ep.PlayCount} plays</span>
+        {!loading && episodes.length > 0 && (
+          <div className="row g-3">
+            {episodes.map((ep) => (
+              <div className="col-12 col-md-6 col-lg-4" key={ep.id ?? ep.Id}>
+                <div className="card pp-glass pp-epCard h-100">
+                  <div className="card-body p-4 d-flex flex-column">
+                    <div className="pp-cardTop">
+                      <div className="flex-grow-1">
+                        <h5 className="pp-epTitle">{ep.title ?? ep.Title}</h5>
+                        {(ep.description ?? ep.Description) && (
+                          <div className="pp-epDesc">{ep.description ?? ep.Description}</div>
                         )}
                       </div>
 
                       {(ep.audioUrl ?? ep.AudioUrl) ? (
-                        <div className="pp-audioWrap mt-auto">
-                          <audio controls>
-                            <source src={ep.audioUrl ?? ep.AudioUrl} />
-                          </audio>
-                        </div>
+                        <a className="pp-link" href={ep.audioUrl ?? ep.AudioUrl} target="_blank" rel="noreferrer">
+                          Open ↗
+                        </a>
                       ) : (
-                        <div className="mt-auto text-danger small pt-3">No audio URL found for this episode.</div>
+                        <span className="pp-link" style={{ opacity: 0.6, cursor: "not-allowed" }}>
+                          No audio
+                        </span>
                       )}
                     </div>
+
+                    <div className="pp-metaRow">
+                      {renderCategories(ep)}
+                      {(ep.season ?? ep.Season) != null && (
+                        <span className="pp-badge">📺 Season {ep.season ?? ep.Season}</span>
+                      )}
+                      {(ep.durationSeconds ?? ep.DurationSeconds) ? (
+                        <span className="pp-badge">
+                          ⏱ {formatDuration(ep.durationSeconds ?? ep.DurationSeconds)}
+                        </span>
+                      ) : null}
+                      {(ep.playCount ?? ep.PlayCount) != null && (
+                        <span className="pp-badge">▶ {ep.playCount ?? ep.PlayCount} plays</span>
+                      )}
+                    </div>
+
+                    {(ep.audioUrl ?? ep.AudioUrl) ? (
+                      <div className="pp-audioWrap mt-auto">
+                        <audio controls>
+                          <source src={ep.audioUrl ?? ep.AudioUrl} />
+                        </audio>
+                      </div>
+                    ) : (
+                      <div className="mt-auto text-danger small pt-3">No audio URL found for this episode.</div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {!loading && totalPages > 1 && (
-            <div className="d-flex justify-content-between align-items-center mt-4">
-              <button
-                className="btn pp-glass"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                style={{
-                  color: "rgba(233,238,252,0.92)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  fontWeight: 800,
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  opacity: page === 1 ? 0.6 : 1,
-                  cursor: page === 1 ? "not-allowed" : "pointer",
-                }}
-              >
-                − Prev
-              </button>
-
-              <div className="pp-muted small">
-                Page <strong>{page}</strong> / {totalPages}
               </div>
-
-              <button
-                className="btn pp-glass"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                style={{
-                  color: "rgba(233,238,252,0.92)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  fontWeight: 800,
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  opacity: page >= totalPages ? 0.6 : 1,
-                  cursor: page >= totalPages ? "not-allowed" : "pointer",
-                }}
-              >
-                + Next
-              </button>
-            </div>
-          )}
-
-          <div className="pp-footer py-3 mt-5">
-            <div className="container pp-container d-flex flex-wrap gap-2 justify-content-between align-items-center">
-              <small>Built for your MVP: browse + listen.</small>
-              <small className="pp-muted">Admin upload page is separate.</small>
-            </div>
+            ))}
           </div>
+        )}
+      </div>
+
+      <div className="pp-footer py-3">
+        <div className="container pp-container d-flex flex-wrap gap-2 justify-content-between align-items-center">
+          <small>Built for your MVP: browse + listen.</small>
+          <small className="pp-muted">Admin upload page is separate.</small>
         </div>
       </div>
     </div>
