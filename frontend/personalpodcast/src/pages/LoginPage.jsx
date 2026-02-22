@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+
 function LoginPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login, isLoggedIn } = useAuth();
+  const { login, isLoggedIn , user } = useAuth();
 
+  
   React.useEffect(() => {
-    if (isLoggedIn) {
-      navigate('/');
-    }
-  }, [isLoggedIn, navigate]);
+  if (isLoggedIn) {
+   
+  }
+}, [isLoggedIn, user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -36,12 +38,18 @@ function LoginPage() {
 
       const data = await response.json();
 
+
+
+
       if (data.success) {
-        login(data.accessToken);
-        navigate('/');
-      } else {
-        setError(data.message || 'Login failed');
-      }
+  const user = login(data.accessToken);
+
+  if (user?.role === "Admin") navigate("/admin");
+  else navigate("/");
+
+} else {
+  setError(data.message || "Login failed");
+}
     } catch (err) {
       setError('An error occurred. Please try again.');
       console.error(err);

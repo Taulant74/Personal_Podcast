@@ -8,10 +8,11 @@ using PersonalPodcast.Models;
 using PersonalPodcast.Services;
 
 namespace PersonalPodcast.Controllers
-{
-    [Route("api/[controller]")]
+{ 
     [ApiController]
-   
+    [Route("api/[controller]")] 
+    [Authorize(Roles = "Admin")]
+
     public class AdminController : ControllerBase
     {
         private readonly CloudinaryService _cloudinary;
