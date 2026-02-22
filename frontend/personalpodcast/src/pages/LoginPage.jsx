@@ -38,9 +38,6 @@ function LoginPage() {
 
       const data = await response.json();
 
-
-
-
       if (data.success) {
   const user = login(data.accessToken);
 
