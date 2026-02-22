@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: personalpodcast-backend
+  namespace: personalpodcast
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: personalpodcast-backend
+  template:
+    metadata:
+      labels:
+        app: personalpodcast-backend
+    spec:
+      containers:
+        - name: api
+          image: personalpodcast-backend:dev   # ose YOUR_REGISTRY/... kur kalojme registry
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+
+          # merr automatikisht ConnectionStrings__PersonalPodcastDatabase, CLOUDINARY etj
+          envFrom:
+            - secretRef:
+                name: personalpodcast-secrets
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: personalpodcast
+spec:
+  selector:
+    app: personalpodcast-backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
