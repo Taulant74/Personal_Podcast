@@ -11,7 +11,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__PersonalPodcastDatabase: "${ConnectionStrings__PersonalPodcastDatabase}"
+      DB_CONNECTION: "${DB_CONNECTION}"
       CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
       CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
       CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"

@@ -102,3 +102,14 @@ Pastaj:
 - **Kubernetes port-forward**
   - FE: `localhost:13000`
   - API: `localhost:18080`
+
+## Restart deployments -- ne rast te ndryshimit najsen ne secret apo env
+```powershell
+kubectl -n personalpodcast rollout restart deployment/personalpodcast-backend
+kubectl -n personalpodcast rollout restart deployment/personalpodcast-frontend
+
+kubectl -n personalpodcast rollout status deployment/personalpodcast-backend
+kubectl -n personalpodcast rollout status deployment/personalpodcast-frontend
+
+kubectl -n personalpodcast get pods
+```
