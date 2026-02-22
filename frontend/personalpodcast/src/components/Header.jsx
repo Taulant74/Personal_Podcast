@@ -4,7 +4,11 @@ import './Header.css';
 import { useAuth } from '../context/AuthContext';
 
 function Header() {
-  const { isLoggedIn, username, roles = [], logout } = useAuth();
+  const { user, isLoggedIn, logout } = useAuth();
+
+  const username = user?.username;
+  const roles = user?.roles || [];
+  
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef();
 
