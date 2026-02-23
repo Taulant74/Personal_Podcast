@@ -3,8 +3,11 @@ kind: Deployment
 metadata:
   name: personalpodcast-frontend
   namespace: personalpodcast
+  labels:
+    app: personalpodcast-frontend
 spec:
-  replicas: 2
+  replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: personalpodcast-frontend
@@ -13,9 +16,10 @@ spec:
       labels:
         app: personalpodcast-frontend
     spec:
+      terminationGracePeriodSeconds: 10
       containers:
         - name: web
-          image: personalpodcast-frontend:dev
+          image: personalpodcast.azurecr.io/personalpodcast-frontend:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
@@ -37,7 +41,7 @@ spec:
           resources:
             requests:
               cpu: "50m"
-              memory: "128Mi"
+              memory: "96Mi"
             limits:
               cpu: "250m"
               memory: "256Mi"
