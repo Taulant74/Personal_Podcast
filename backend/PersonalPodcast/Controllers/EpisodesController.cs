@@ -17,6 +17,25 @@ namespace PersonalPodcast.Controllers
             _db = db;
         }
 
+        [HttpPost("{id:int}/play")]
+        public async Task<IActionResult> IncrementPlay([FromRoute] int id)
+        {
+            var updated = await _db.Episodes
+                .Where(e => e.Id == id && e.IsPublished)
+                .ExecuteUpdateAsync(setters =>
+                    setters.SetProperty(e => e.PlayCount, e => e.PlayCount + 1));
+
+            if (updated == 0)
+                return NotFound(new { message = "Episode not found." });
+
+            var playCount = await _db.Episodes
+                .Where(e => e.Id == id)
+                .Select(e => e.PlayCount)
+                .FirstAsync();
+
+            return Ok(new { id, playCount });
+        }
+
         [HttpGet("search")]
         public async Task<ActionResult<PagedResultDto<EpisodeSearchItemDto>>> Search([FromQuery] EpisodeSearchRequestDto? request)
         {

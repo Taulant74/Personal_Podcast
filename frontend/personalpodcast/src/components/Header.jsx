@@ -7,7 +7,7 @@ function Header() {
   const { user, isLoggedIn, logout } = useAuth();
 
   const username = user?.username;
-  const role = user?.role; // ✅ single role now
+  const role = user?.role; 
 
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef();

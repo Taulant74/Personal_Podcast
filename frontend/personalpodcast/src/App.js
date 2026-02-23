@@ -1,5 +1,3 @@
-
-
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from './components/Header';
@@ -27,7 +25,6 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/user-panel" element={<UserPanelPage />} />
             <Route path="/episodes" element={<EpisodePage />} />
-            <Route path="/episode-upload" element={<EpisodesUpload />} />
             <Route path="/publisher-dashboard" element={<PublisherDashboard />} />
             <Route element={<RequireAdmin />}>
               <Route path="/admin" element={<AdminDashboard />} />
