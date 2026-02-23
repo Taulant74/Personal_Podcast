@@ -76,6 +76,15 @@ namespace PersonalPodcast.Data
 
             modelBuilder.Entity<EpisodeCategory>().HasKey(ec => new { ec.EpisodeId, ec.CategoryId });
 
+            modelBuilder.Entity<Episode>()
+            .HasIndex(e => e.PublisherId);
+
+            modelBuilder.Entity<Episode>()
+                .HasOne(e => e.Publisher)
+                .WithMany()
+                .HasForeignKey(e => e.PublisherId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<EpisodeCategory>()
                 .HasOne(ec => ec.Episode)
                 .WithMany(e => e.EpisodeCategories)

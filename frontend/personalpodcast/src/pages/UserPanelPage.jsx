@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 function UserPanelPage() {
   const { user: authUser, authFetch } = useAuth();
 
-  const [user, setUser] = useState(null);   // ✅ local DB user
+  const [user, setUser] = useState(null);  
   const [editingField, setEditingField] = useState(null);
   const [tempValue, setTempValue] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -14,7 +14,6 @@ function UserPanelPage() {
 
   const userId = authUser?.id;
 
-  // ================= FETCH USER =================
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -38,7 +37,6 @@ function UserPanelPage() {
     if (userId) fetchUser();
   }, [userId]);
 
-  // ================= EDIT LOGIC =================
   const startEditing = (field) => {
     setEditingField(field);
     setTempValue(user?.[field] ?? "");
@@ -93,14 +91,13 @@ function UserPanelPage() {
       }
 
       const updatedUser = await response.json();
-      setUser(updatedUser);   // ✅ now defined
+      setUser(updatedUser);   
       cancelEditing();
     } catch (err) {
       setError("Server error.");
     }
   };
 
-  // ================= UI =================
   const renderField = (label, field, type = "text") => (
     <div className="d-flex flex-column gap-2">
       <label style={{ color: "#D3DAD9" }}>{label}</label>

@@ -14,6 +14,8 @@
         public bool IsPublished { get; set; }
         public DateTime? PublishedDate { get; set; }
         public int PlayCount { get; set; }
+        public int? PublisherId { get; set; }
+        public User? Publisher { get; set; }
         public DateTime CreatedAt { get; set; }
         public ICollection<EpisodeCategory> EpisodeCategories { get; set; } = new List<EpisodeCategory>();
     }
