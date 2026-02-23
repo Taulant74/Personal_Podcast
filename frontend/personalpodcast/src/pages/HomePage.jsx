@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef} from "react";
 import axios from "axios";
 
 export default function HomePage() {
+  
   const api = useMemo(() => {
     return axios.create({
       baseURL: "https://localhost:7261",
@@ -18,7 +19,102 @@ export default function HomePage() {
   const [total, setTotal] = useState(0);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const countedPlaysRef = useRef(new Set());
 
+  const [playerOpen, setPlayerOpen] = useState(false);
+  const [activeEpisode, setActiveEpisode] = useState(null);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef(null);
+
+  const incrementPlayOnce = async (episodeId) => {
+    if (!episodeId) return;
+
+    if (countedPlaysRef.current.has(episodeId)) return;
+
+    countedPlaysRef.current.add(episodeId);
+
+    try {
+      const res = await api.post(`/api/Episodes/${episodeId}/play`);
+
+      setEpisodes((prev) =>
+        prev.map((e) => {
+          const id = e.id ?? e.Id;
+          if (id !== episodeId) return e;
+
+          const current = (e.playCount ?? e.PlayCount ?? 0);
+          const newCount =
+            res?.data && typeof res.data.playCount === "number"
+              ? res.data.playCount
+              : current + 1;
+
+          if ("playCount" in e) return { ...e, playCount: newCount };
+          return { ...e, PlayCount: newCount };
+        })
+      );
+    } catch (err) {
+      countedPlaysRef.current.delete(episodeId);
+      console.error("Failed to increment play count:", err);
+    }
+  };
+
+  const openPlayer = (episode) => {
+    setActiveEpisode(episode);
+    setPlayerOpen(true);
+    setCurrentTime(0);
+    setIsPlaying(false);
+    incrementPlayOnce(episode.id ?? episode.Id);
+  };
+
+  const closePlayer = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setPlayerOpen(false);
+    setActiveEpisode(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setPlaybackRate(1);
+  };
+
+  const skip = (seconds) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime + seconds);
+    }
+  };
+
+  const setSpeed = (rate) => {
+    setPlaybackRate(rate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+    }
+  };
+
+  const togglePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && playerOpen) {
+        closePlayer();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [playerOpen]);
+  
   useEffect(() => {
     let cancelled = false;
 
@@ -96,6 +192,76 @@ export default function HomePage() {
   return (
     <div>
       <style>{`
+      .cap-expanded{
+  width: 100%;
+}
+
+.cap-skip-row{
+  display:flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cap-skip{
+  flex:1;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  color: rgba(233,238,252,0.9);
+  font-weight: 800;
+  font-size: 12px;
+  padding: 6px 10px;
+  transition: background .15s ease, transform .15s ease;
+  cursor: pointer;
+}
+
+.cap-skip:hover{
+  background: rgba(255,255,255,0.14);
+  transform: translateY(-1px);
+}
+      .cap{
+  width: 56px;
+  height: 44px;
+  border-radius: 999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(0,0,0,0.26);
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: width 220ms ease, border-radius 220ms ease;
+  overflow: hidden;
+}
+.cap--expanded{
+  width: 100%;
+  border-radius: 16px;
+  padding: 8px;
+  justify-content: flex-start;
+}
+.cap-btn{
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.10);
+  color: rgba(233,238,252,0.95);
+  font-weight: 900;
+  cursor: pointer;
+}
+.cap-btn:hover{
+  background: rgba(255,255,255,0.14);
+}
+  audio {
+  width: 100%;
+  border-radius: 12px;
+
+  /* Make native controls dark */
+  filter: invert(1) hue-rotate(180deg) brightness(0.9);
+}
+.cap-audio{
+  width: 100%;
+  border-radius: 12px;
+}
         .pp-container{ max-width: 1120px; }
 
         .pp-hero{ padding: 26px 0 12px; }
@@ -228,9 +394,9 @@ export default function HomePage() {
           color: rgba(233,238,252,0.65) !important;
           opacity: 1;
         }
+          
       `}</style>
 
-      {/* Contenti */}
       <div className="container pp-container px-5" style={{ backgroundColor: "#37353E" }}>
         <div className="pp-hero">
           <h1 className="pp-title">All episodes. One place.</h1>
@@ -367,15 +533,6 @@ export default function HomePage() {
                         )}
                       </div>
 
-                      {(ep.audioUrl ?? ep.AudioUrl) ? (
-                        <a className="pp-link" href={ep.audioUrl ?? ep.AudioUrl} target="_blank" rel="noreferrer">
-                          Open ↗
-                        </a>
-                      ) : (
-                        <span className="pp-link" style={{ opacity: 0.6, cursor: "not-allowed" }}>
-                          No audio
-                        </span>
-                      )}
                     </div>
 
                     <div className="pp-metaRow">
@@ -389,16 +546,27 @@ export default function HomePage() {
                         </span>
                       ) : null}
                       {(ep.playCount ?? ep.PlayCount) != null && (
-                        <span className="pp-badge">▶ {ep.playCount ?? ep.PlayCount} plays</span>
+                        <span className="pp-badge pp-badge--plays">▶ {ep.playCount ?? ep.PlayCount} plays</span>
                       )}
                     </div>
 
                     {(ep.audioUrl ?? ep.AudioUrl) ? (
-                      <div className="pp-audioWrap mt-auto">
-                        <audio controls>
-                          <source src={ep.audioUrl ?? ep.AudioUrl} />
-                        </audio>
-                      </div>
+                      <button
+                        className="btn pp-glass"
+                        onClick={() => openPlayer(ep)}
+                        style={{
+                          marginTop: 14,
+                          color: "rgba(233,238,252,0.92)",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          fontWeight: 800,
+                          borderRadius: 999,
+                          padding: "8px 14px",
+                          width: "100%",
+                          cursor: "pointer",
+                        }}
+                      >
+                        ▶ Open Player
+                      </button>
                     ) : (
                       <div className="mt-auto text-danger small pt-3">No audio URL found for this episode.</div>
                     )}
@@ -409,6 +577,354 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {playerOpen && activeEpisode && (
+        <div
+          className="pp-modal-overlay"
+          onClick={closePlayer}
+          onKeyDown={(e) => e.key === "Escape" && closePlayer()}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1050,
+          }}
+        >
+          <div
+            className="pp-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+              backdropFilter: "blur(14px)",
+              borderRadius: 20,
+              padding: 32,
+              maxWidth: "90vw",
+              width: 600,
+              maxHeight: "90vh",
+              overflowY: "auto",
+              position: "relative",
+            }}
+          >
+            <button
+              onClick={closePlayer}
+              style={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                width: 36,
+                height: 36,
+                borderRadius: 999,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.08)",
+                color: "rgba(233,238,252,0.92)",
+                fontSize: 18,
+                fontWeight: 900,
+                cursor: "pointer",
+                transition: "background .15s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onMouseEnter={(e) => (e.target.style.background = "rgba(255,255,255,0.14)")}
+              onMouseLeave={(e) => (e.target.style.background = "rgba(255,255,255,0.08)")}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            <div style={{ marginBottom: 28 }}>
+              <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 900, marginBottom: 12 }}>
+                {activeEpisode.title ?? activeEpisode.Title}
+              </h2>
+              {(activeEpisode.description ?? activeEpisode.Description) && (
+                <p
+                  style={{
+                    margin: 0,
+                    color: "rgba(233,238,252,0.78)",
+                    fontSize: "0.95rem",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {activeEpisode.description ?? activeEpisode.Description}
+                </p>
+              )}
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+                {(() => {
+                  const cats = Array.isArray(activeEpisode?.categories)
+                    ? activeEpisode.categories
+                    : Array.isArray(activeEpisode?.Categories)
+                    ? activeEpisode.Categories
+                    : null;
+                  return cats && cats.length ? (
+                    <span
+                      className="pp-badge"
+                      style={{
+                        borderRadius: 999,
+                        padding: "7px 10px",
+                        fontWeight: 800,
+                        fontSize: 12,
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        color: "rgba(233,238,252,0.88)",
+                      }}
+                    >
+                      🏷 {cats.join(", ")}
+                    </span>
+                  ) : null;
+                })()}
+
+                {(activeEpisode.season ?? activeEpisode.Season) != null && (
+                  <span
+                    style={{
+                      borderRadius: 999,
+                      padding: "7px 10px",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "rgba(233,238,252,0.88)",
+                    }}
+                  >
+                    📺 Season {activeEpisode.season ?? activeEpisode.Season}
+                  </span>
+                )}
+
+                {(activeEpisode.durationSeconds ?? activeEpisode.DurationSeconds) ? (
+                  <span
+                    style={{
+                      borderRadius: 999,
+                      padding: "7px 10px",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "rgba(233,238,252,0.88)",
+                    }}
+                  >
+                    ⏱ {(() => {
+                      const s = activeEpisode.durationSeconds ?? activeEpisode.DurationSeconds;
+                      const m = Math.floor(s / 60);
+                      const sec = s % 60;
+                      return `${m}m ${String(sec).padStart(2, "0")}s`;
+                    })()}
+                  </span>
+                ) : null}
+
+                {(activeEpisode.playCount ?? activeEpisode.PlayCount) != null && (
+                  <span
+                    style={{
+                      borderRadius: 999,
+                      padding: "7px 10px",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "rgba(233,238,252,0.88)",
+                    }}
+                  >
+                    ▶ {activeEpisode.playCount ?? activeEpisode.PlayCount} plays
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(0,0,0,0.22)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                borderRadius: 14,
+                padding: 16,
+                marginBottom: 20,
+              }}
+            >
+              <audio
+                ref={audioRef}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+                onLoadedMetadata={(e) => setDuration(e.target.duration)}
+                onEnded={() => setIsPlaying(false)}
+                style={{ display: "none" }}
+              >
+                <source src={activeEpisode.audioUrl ?? activeEpisode.AudioUrl} />
+              </audio>
+
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  type="range"
+                  min="0"
+                  max={duration || 0}
+                  value={currentTime}
+                  onChange={(e) => {
+                    if (audioRef.current) {
+                      audioRef.current.currentTime = parseFloat(e.target.value);
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    height: 6,
+                    borderRadius: 3,
+                    background: "rgba(255,255,255,0.10)",
+                    outline: "none",
+                    cursor: "pointer",
+                    accentColor: "rgba(233,238,252,0.92)",
+                  }}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginTop: 8,
+                    color: "rgba(233,238,252,0.72)",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  <span>
+                    {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, "0")}
+                  </span>
+                  <span>
+                    {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 12,
+                  marginBottom: 14,
+                }}
+              >
+                <button
+                  onClick={() => skip(-15)}
+                  style={{
+                    flex: 1,
+                    borderRadius: 999,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.08)",
+                    color: "rgba(233,238,252,0.9)",
+                    fontWeight: 800,
+                    fontSize: 12,
+                    padding: "6px 10px",
+                    transition: "background .15s ease, transform .15s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "rgba(255,255,255,0.14)";
+                    e.target.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "rgba(255,255,255,0.08)";
+                    e.target.style.transform = "translateY(0)";
+                  }}
+                >
+                  ⏮ -15s
+                </button>
+
+                <button
+                  onClick={togglePlayPause}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 999,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.10)",
+                    color: "rgba(233,238,252,0.95)",
+                    fontWeight: 900,
+                    fontSize: 20,
+                    cursor: "pointer",
+                    transition: "background .15s ease, transform .15s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "rgba(255,255,255,0.14)";
+                    e.target.style.transform = "scale(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "rgba(255,255,255,0.10)";
+                    e.target.style.transform = "scale(1)";
+                  }}
+                >
+                  {isPlaying ? "⏸" : "▶"}
+                </button>
+
+                <button
+                  onClick={() => skip(15)}
+                  style={{
+                    flex: 1,
+                    borderRadius: 999,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.08)",
+                    color: "rgba(233,238,252,0.9)",
+                    fontWeight: 800,
+                    fontSize: 12,
+                    padding: "6px 10px",
+                    transition: "background .15s ease, transform .15s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "rgba(255,255,255,0.14)";
+                    e.target.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "rgba(255,255,255,0.08)";
+                    e.target.style.transform = "translateY(0)";
+                  }}
+                >
+                  +15s ⏭
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                  <button
+                    key={rate}
+                    onClick={() => setSpeed(rate)}
+                    style={{
+                      borderRadius: 999,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background:
+                        playbackRate === rate ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.08)",
+                      color: "rgba(233,238,252,0.9)",
+                      fontWeight: 800,
+                      fontSize: 11,
+                      padding: "5px 10px",
+                      transition: "background .15s ease",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (playbackRate !== rate) {
+                        e.target.style.background = "rgba(255,255,255,0.12)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (playbackRate !== rate) {
+                        e.target.style.background = "rgba(255,255,255,0.08)";
+                      }
+                    }}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="pp-footer py-3">
         <div className="container pp-container d-flex flex-wrap gap-2 justify-content-between align-items-center">
