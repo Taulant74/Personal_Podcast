@@ -1,7 +1,6 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from './components/Header';
-import EpisodesUpload from './pages/EpisodesUpload';
 import EpisodePage from './pages/EpisodePage';
 import HomePage from "./pages/HomePage";
 import AdminDashboard from './pages/AdminDashboard';
@@ -11,7 +10,8 @@ import CategoryPage from './pages/CategoryPage';
 import PublisherDashboard from './pages/PublisherDashboard';
 import { AuthProvider } from './context/AuthContext';
 import UserPanelPage from './pages/UserPanelPage';
-import RequireAdmin from "./components/RequireAdmin";
+import RequireRole from './components/RequireRole';
+
 
 function App() {
   return (
@@ -25,10 +25,13 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/user-panel" element={<UserPanelPage />} />
             <Route path="/episodes" element={<EpisodePage />} />
-            <Route path="/publisher-dashboard" element={<PublisherDashboard />} />
-            <Route element={<RequireAdmin />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-            </Route>
+            <Route element={<RequireRole allowedRoles={["Admin"]} />}>
+  <Route path="/admin" element={<AdminDashboard />} />
+</Route>
+
+<Route element={<RequireRole allowedRoles={["Publisher","Admin"]} />}>
+  <Route path="/publisher" element={<PublisherDashboard />} />
+</Route>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/categories" element={<CategoryPage />} />

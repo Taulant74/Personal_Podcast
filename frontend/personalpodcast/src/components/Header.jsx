@@ -102,7 +102,7 @@ function Header() {
 
                 {role === "Publisher" && (
                   <Link
-                    to="/publisher-dashboard"
+                    to="/publisher"
                     className="user-dropdown-item"
                     onClick={() => setShowDropdown(false)}
                   >
