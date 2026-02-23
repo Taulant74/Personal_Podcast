@@ -4,11 +4,11 @@ const API_BASE = "https://localhost:7261";
 const ADMIN_URL = `${API_BASE}/api/Admin`;
 const ADMIN_EPISODES_URL = `${ADMIN_URL}/episodes`;
 const ADMIN_USERS_URL = `${ADMIN_URL}/users`;
+const CATEGORIES_URL = `${API_BASE}/api/categories`;
 
 const emptyCreateEpisode = {
   title: "",
   description: "",
-  category: "",
   season: "",
   isPublished: true,
   file: null,
@@ -53,7 +53,6 @@ export default function AdminDashboard() {
   const [editEpisodeForm, setEditEpisodeForm] = useState({
     title: "",
     description: "",
-    category: "",
     season: "",
     isPublished: true,
     file: null,
@@ -74,8 +73,16 @@ export default function AdminDashboard() {
     age: "",
     email: "",
     role: "User",
-    password: "", 
+    password: "",
   });
+
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [editSelectedCategoryIds, setEditSelectedCategoryIds] = useState([]);
+
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -91,24 +98,131 @@ export default function AdminDashboard() {
     return { ok: false, error: txt || `Request failed (${res.status})` };
   }
 
-const getToken = () => localStorage.getItem("accessToken");
+  const getToken = () => localStorage.getItem("accessToken");
 
-const authHeaders = (extra = {}) => {
-  const t = getToken();
-  return t ? { ...extra, Authorization: `Bearer ${t}` } : extra;
-};
+  const authHeaders = (extra = {}) => {
+    const t = getToken();
+    return t ? { ...extra, Authorization: `Bearer ${t}` } : extra;
+  };
+
+  function getEpisodeCategoryLabels(e) {
+    const idToName = new Map((categories || []).map((c) => [c.id, c.name]));
+
+    const pickName = (obj) =>
+      obj?.name ??
+      obj?.Name ??
+      obj?.categoryName ??
+      obj?.CategoryName ??
+      obj?.title ??
+      obj?.Title ??
+      obj?.category?.name ??
+      obj?.category?.Name ??
+      obj?.category?.title ??
+      obj?.Category?.name ??
+      obj?.Category?.Name ??
+      obj?.Category?.title ??
+      null;
+
+    const pickId = (obj) =>
+      obj?.categoryId ??
+      obj?.CategoryId ??
+      obj?.categoryID ??
+      obj?.CategoryID ??
+      obj?.id ??
+      obj?.Id ??
+      obj?.category?.id ??
+      obj?.category?.Id ??
+      obj?.Category?.id ??
+      obj?.Category?.Id ??
+      null;
+
+    if (Array.isArray(e?.categories) && e.categories.length) {
+      if (typeof e.categories[0] === "string") return e.categories;
+      if (typeof e.categories[0] === "number") {
+        return e.categories.map((id) => idToName.get(id)).filter(Boolean);
+      }
+      const names = e.categories.map(pickName).filter(Boolean);
+      if (names.length) return names;
+    }
+
+    const ecs = Array.isArray(e?.episodeCategories) ? e.episodeCategories : [];
+    if (!ecs.length) return [];
+
+    if (typeof ecs[0] === "string") return ecs.filter(Boolean);
+
+    if (typeof ecs[0] === "number") {
+      return ecs.map((id) => idToName.get(id)).filter(Boolean);
+    }
+
+    const names = ecs.map(pickName).filter(Boolean);
+    if (names.length) return names;
+
+    const ids = ecs.map(pickId).filter((v) => typeof v === "number");
+    if (ids.length) return ids.map((id) => idToName.get(id)).filter(Boolean);
+
+    return [];
+  }
+
+  async function loadCategories() {
+    try {
+      const res = await fetch(CATEGORIES_URL, { method: "GET", headers: authHeaders() });
+      const out = await fetchJsonOrTextError(res);
+      if (!out.ok) throw new Error(out.error);
+      setCategories(Array.isArray(out.data) ? out.data : []);
+    } catch {
+    }
+  }
+
+  function openAddCategory() {
+    resetMessages();
+    setNewCategoryName("");
+    setShowAddCategory(true);
+  }
+
+  async function handleAddCategorySubmit(e) {
+    e.preventDefault();
+    resetMessages();
+
+    const name = newCategoryName.trim();
+    if (!name) {
+      setErrorMsg("Category name is required.");
+      return;
+    }
+
+    setAddingCategory(true);
+    try {
+      const res = await fetch(CATEGORIES_URL, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ name }),
+      });
+
+      const out = await fetchJsonOrTextError(res);
+      if (!out.ok) throw new Error(out.error);
+
+      setSuccessMsg("Category created.");
+      setShowAddCategory(false);
+      await loadCategories();
+    } catch (e2) {
+      setErrorMsg(e2?.message || "Failed to create category.");
+    } finally {
+      setAddingCategory(false);
+    }
+  }
 
   async function loadEpisodes() {
     setEpisodesLoading(true);
     resetMessages();
     try {
       const res = await fetch(ADMIN_EPISODES_URL, {
-  method: "GET",
-  headers: authHeaders(),
-});
+        method: "GET",
+        headers: authHeaders(),
+      });
       const out = await fetchJsonOrTextError(res);
       if (!out.ok) throw new Error(out.error);
-      setEpisodes(Array.isArray(out.data) ? out.data : []);
+
+      const list = Array.isArray(out.data) ? out.data : [];
+      setEpisodes(list);
     } catch (e) {
       setErrorMsg(e?.message || "Failed to load episodes.");
     } finally {
@@ -119,28 +233,59 @@ const authHeaders = (extra = {}) => {
   function openCreateEpisode() {
     resetMessages();
     setCreateEpisodeForm({ ...emptyCreateEpisode });
+    setSelectedCategoryIds([]);
     setShowCreateEpisode(true);
   }
 
   function openEditEpisode(episode) {
     resetMessages();
     setEditEpisodeId(episode.id);
+
+    let ids =
+      Array.isArray(episode.categoryIds)
+        ? episode.categoryIds
+        : Array.isArray(episode.categoryIDIds)
+        ? episode.categoryIDIds
+        : Array.isArray(episode.categoriesIds)
+        ? episode.categoriesIds
+        : Array.isArray(episode.categories) &&
+          episode.categories.length &&
+          typeof episode.categories[0] === "number"
+        ? episode.categories
+        : [];
+
+    if ((!ids || ids.length === 0) && Array.isArray(episode.episodeCategories) && episode.episodeCategories.length) {
+      const ecs = episode.episodeCategories;
+
+      if (typeof ecs[0] === "number") {
+        ids = ecs;
+      } else if (typeof ecs[0] === "object") {
+        ids = ecs
+          .map((x) => x?.categoryId ?? x?.CategoryId ?? x?.category?.id ?? x?.Category?.id ?? x?.id ?? x?.Id)
+          .filter((v) => typeof v === "number");
+      }
+    }
+
+    setEditSelectedCategoryIds(ids);
+
     setEditEpisodeForm({
       title: episode.title || "",
       description: episode.description || "",
-      category: episode.category || "",
       season: episode.season === null || episode.season === undefined ? "" : String(episode.season),
       isPublished: !!episode.isPublished,
       file: null,
     });
+
     setShowEditEpisode(true);
   }
 
-  function buildEpisodeFormData(form, requireFile) {
+  function buildEpisodeFormData(form, requireFile, categoryIds) {
     const fd = new FormData();
+
     fd.append("title", form.title ?? "");
     fd.append("description", form.description ?? "");
-    fd.append("category", form.category ?? "");
+
+    fd.append("categoryIds", (categoryIds ?? []).join(","));
 
     if (form.season !== "" && form.season !== null && form.season !== undefined) {
       fd.append("season", String(form.season));
@@ -162,14 +307,13 @@ const authHeaders = (extra = {}) => {
       if (!createEpisodeForm.title.trim()) throw new Error("Title is required.");
       if (!createEpisodeForm.file) throw new Error("Audio file is required.");
 
-      const fd = buildEpisodeFormData(createEpisodeForm, true);
+      const fd = buildEpisodeFormData(createEpisodeForm, true, selectedCategoryIds);
 
       const res = await fetch(ADMIN_EPISODES_URL, {
-  method: "POST",
-  headers: authHeaders(),
-  body: fd,
-});
-      
+        method: "POST",
+        headers: authHeaders(),
+        body: fd,
+      });
 
       const out = await fetchJsonOrTextError(res);
       if (!out.ok) throw new Error(out.error);
@@ -190,14 +334,12 @@ const authHeaders = (extra = {}) => {
       if (!editEpisodeId) throw new Error("Missing episode id.");
       if (!editEpisodeForm.title.trim()) throw new Error("Title is required.");
 
-      const fd = buildEpisodeFormData(editEpisodeForm, false);
-
-
+      const fd = buildEpisodeFormData(editEpisodeForm, false, editSelectedCategoryIds);
 
       const res = await fetch(`${ADMIN_EPISODES_URL}/${editEpisodeId}`, {
         method: "PUT",
-         headers: authHeaders(),
-  body: fd,
+        headers: authHeaders(),
+        body: fd,
       });
 
       const out = await fetchJsonOrTextError(res);
@@ -218,7 +360,6 @@ const authHeaders = (extra = {}) => {
     if (!ok) return;
 
     try {
-      
       const res = await fetch(`${ADMIN_EPISODES_URL}/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok && res.status !== 204) {
         const txt = await res.text().catch(() => "");
@@ -242,7 +383,6 @@ const authHeaders = (extra = {}) => {
     setUsersLoading(true);
     resetMessages();
     try {
-      
       const res = await fetch(ADMIN_USERS_URL, { method: "GET", headers: authHeaders() });
       const out = await fetchJsonOrTextError(res);
       if (!out.ok) throw new Error(out.error);
@@ -270,7 +410,7 @@ const authHeaders = (extra = {}) => {
       age: u.age === null || u.age === undefined ? "" : String(u.age),
       email: u.email || "",
       role: u.role || "User",
-      password: "", 
+      password: "",
     });
     setShowEditUser(true);
   }
@@ -308,7 +448,6 @@ const authHeaders = (extra = {}) => {
 
       const body = normalizeUserPayload(createUserForm, true);
 
-      
       const res = await fetch(ADMIN_USERS_URL, {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
@@ -360,7 +499,6 @@ const authHeaders = (extra = {}) => {
     if (!ok) return;
 
     try {
-    
       const res = await fetch(`${ADMIN_USERS_URL}/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok && res.status !== 204) {
         const txt = await res.text().catch(() => "");
@@ -387,14 +525,14 @@ const authHeaders = (extra = {}) => {
 
   useEffect(() => {
     loadEpisodes();
+    loadCategories();
   }, []);
 
   useEffect(() => {
     if (tab === "users" && users.length === 0) {
       loadUsers();
     }
-
-  }, [tab]);
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function closeModals() {
     setShowCreateEpisode(false);
@@ -404,6 +542,10 @@ const authHeaders = (extra = {}) => {
     setShowCreateUser(false);
     setShowEditUser(false);
     setEditUserId(null);
+
+    setShowAddCategory(false);
+    setSelectedCategoryIds([]);
+    setEditSelectedCategoryIds([]);
   }
 
   return (
@@ -422,6 +564,9 @@ const authHeaders = (extra = {}) => {
               </button>
               <button className="btn btn-primary" onClick={openCreateEpisode}>
                 + Create Episode
+              </button>
+              <button className="btn btn-outline-primary" onClick={openAddCategory}>
+                + Add Category
               </button>
             </>
           ) : (
@@ -525,7 +670,12 @@ const authHeaders = (extra = {}) => {
                           )}
                         </td>
 
-                        <td>{e.category || "—"}</td>
+                        {/* ✅ This now reads from episodeCategories correctly */}
+                        <td>{(() => {
+                          const labels = getEpisodeCategoryLabels(e);
+                          return labels.length ? labels.join(", ") : "—";
+                        })()}</td>
+
                         <td>{e.season ?? "—"}</td>
                         <td>{secondsToMinSec(e.durationSeconds)}</td>
                         <td>{formatDate(e.publishedDate)}</td>
@@ -601,7 +751,9 @@ const authHeaders = (extra = {}) => {
                         <td className="text-muted">{u.id}</td>
                         <td>
                           <div className="fw-semibold">{u.username}</div>
-                          <div className="small text-muted">{u.firstName} {u.lastName}</div>
+                          <div className="small text-muted">
+                            {u.firstName} {u.lastName}
+                          </div>
                         </td>
                         <td>{u.age ?? "—"}</td>
                         <td>{u.email || "—"}</td>
@@ -636,6 +788,9 @@ const authHeaders = (extra = {}) => {
             onSubmit={handleCreateEpisodeSubmit}
             submitLabel="Create"
             requireFile={true}
+            categories={categories}
+            selectedIds={selectedCategoryIds}
+            setSelectedIds={setSelectedCategoryIds}
           />
         </Modal>
       ) : null}
@@ -648,6 +803,9 @@ const authHeaders = (extra = {}) => {
             onSubmit={handleEditEpisodeSubmit}
             submitLabel="Save changes"
             requireFile={false}
+            categories={categories}
+            selectedIds={editSelectedCategoryIds}
+            setSelectedIds={setEditSelectedCategoryIds}
           />
           <div className="alert alert-info mt-3 mb-0">
             Uploading a new file will replace the current <code>AudioUrl</code>.
@@ -676,16 +834,40 @@ const authHeaders = (extra = {}) => {
             submitLabel="Save changes"
             requirePassword={false}
           />
-          <div className="alert alert-info mt-3 mb-0">
-            Leave password empty to keep the current password.
-          </div>
+          <div className="alert alert-info mt-3 mb-0">Leave password empty to keep the current password.</div>
+        </Modal>
+      ) : null}
+
+      {showAddCategory ? (
+        <Modal title="Add Category" onClose={() => setShowAddCategory(false)}>
+          <form onSubmit={handleAddCategorySubmit}>
+            <div className="mb-3">
+              <label className="form-label">Category name</label>
+              <input
+                className="form-control"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g. Tech"
+                autoFocus
+              />
+            </div>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAddCategory(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={addingCategory || !newCategoryName.trim()}>
+                {addingCategory ? "Adding..." : "Add"}
+              </button>
+            </div>
+          </form>
         </Modal>
       ) : null}
     </div>
   );
 }
 
-function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile }) {
+function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile, categories, selectedIds, setSelectedIds }) {
   return (
     <form onSubmit={onSubmit}>
       <div className="row g-3">
@@ -710,14 +892,27 @@ function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile }) {
           />
         </div>
 
-        <div className="col-md-6">
-          <label className="form-label">Category</label>
-          <input
-            className="form-control"
-            value={form.category}
-            onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-            placeholder="e.g. Tech, Business"
-          />
+        <div className="col-12">
+          <label className="form-label">Categories</label>
+          <div className="d-flex flex-wrap gap-2">
+            {categories?.length ? (
+              categories.map((c) => (
+                <label key={c.id} className="badge text-bg-light" style={{ cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds?.includes(c.id)}
+                    onChange={() =>
+                      setSelectedIds((prev) => (prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id]))
+                    }
+                    style={{ marginRight: 8 }}
+                  />
+                  {c.name}
+                </label>
+              ))
+            ) : (
+              <div className="text-muted small">No categories available.</div>
+            )}
+          </div>
         </div>
 
         <div className="col-md-6">
@@ -780,20 +975,12 @@ function UserForm({ form, setForm, onSubmit, submitLabel, requirePassword }) {
       <div className="row g-3">
         <div className="col-md-6">
           <label className="form-label">Username</label>
-          <input
-            className="form-control"
-            value={form.username}
-            onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-          />
+          <input className="form-control" value={form.username} onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))} />
         </div>
 
         <div className="col-md-6">
           <label className="form-label">Role</label>
-          <select
-            className="form-select"
-            value={form.role}
-            onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
-          >
+          <select className="form-select" value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}>
             <option value="User">User</option>
             <option value="Admin">Admin</option>
           </select>
@@ -801,20 +988,12 @@ function UserForm({ form, setForm, onSubmit, submitLabel, requirePassword }) {
 
         <div className="col-md-6">
           <label className="form-label">First name</label>
-          <input
-            className="form-control"
-            value={form.firstName}
-            onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))}
-          />
+          <input className="form-control" value={form.firstName} onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))} />
         </div>
 
         <div className="col-md-6">
           <label className="form-label">Last name</label>
-          <input
-            className="form-control"
-            value={form.lastName}
-            onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))}
-          />
+          <input className="form-control" value={form.lastName} onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))} />
         </div>
 
         <div className="col-md-6">
@@ -829,13 +1008,7 @@ function UserForm({ form, setForm, onSubmit, submitLabel, requirePassword }) {
 
         <div className="col-md-6">
           <label className="form-label">Age (optional)</label>
-          <input
-            className="form-control"
-            type="number"
-            min="0"
-            value={form.age}
-            onChange={(e) => setForm((p) => ({ ...p, age: e.target.value }))}
-          />
+          <input className="form-control" type="number" min="0" value={form.age} onChange={(e) => setForm((p) => ({ ...p, age: e.target.value }))} />
         </div>
 
         <div className="col-12">
