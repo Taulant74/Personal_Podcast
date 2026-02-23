@@ -12,6 +12,7 @@ namespace PersonalPodcast.Data
         public DbSet<Episode> Episodes => Set<Episode>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<EpisodeCategory> EpisodeCategories => Set<EpisodeCategory>();
+        public DbSet<Order> Orders => Set<Order>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>(entity =>
