@@ -87,6 +87,31 @@ namespace PersonalPodcast.Data
                 .WithMany(c => c.EpisodeCategories)
                 .HasForeignKey(ec => ec.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Order>(entity =>
+            {
+                entity.HasKey(o => o.Id);
+                entity.Property(o => o.Id).ValueGeneratedOnAdd();
+
+                entity.Property(o => o.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()")
+                    .IsRequired();
+
+                entity.HasOne(o => o.User)
+                    .WithMany()
+                    .HasForeignKey(o => o.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(o => o.Episode)
+                    .WithMany()
+                    .HasForeignKey(o => o.EpisodeId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(o => new { o.UserId, o.EpisodeId })
+                    .IsUnique();
+
+                entity.ToTable("Orders");
+            });
         }
     }
 }
