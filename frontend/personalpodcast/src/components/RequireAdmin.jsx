@@ -6,6 +6,8 @@ export default function RequireAdmin() {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  console.log("DEBUG USER ROLE:", user?.role);
+
   if (loading) return <div className="container py-4">Checking access...</div>;
 
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;

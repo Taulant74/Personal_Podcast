@@ -21,28 +21,17 @@ function parseUserFromToken(token) {
     decoded.sub ||
     "User";
 
-  const rawRole =
+  const role =
     decoded.role ||
-    decoded.roles ||
     decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
-    [];
-
-  let roles = [];
-
-  if (typeof rawRole === "string") {
-    roles = rawRole.includes(",")
-      ? rawRole.split(",").map((r) => r.trim())
-      : [rawRole];
-  } else if (Array.isArray(rawRole)) {
-    roles = rawRole;
-  }
+    "User";
 
   const id =
     decoded.sid ||
     decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid"] ||
     null;
 
-  return { id, username, roles };
+  return { id, username, role };
 }
 
 export function AuthProvider({ children }) {
@@ -130,6 +119,43 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const authFetch = async (url, options = {}) => {
+    const accessToken = localStorage.getItem("accessToken");
+
+    const fetchOptions = {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${accessToken}`,
+      },
+      credentials: "include",
+    };
+
+    let response = await fetch(url, fetchOptions);
+
+    if (response.status === 401) {
+      const newToken = await refreshAccessToken();
+
+      if (!newToken) {
+        logout();
+        return response;
+      }
+
+      const retryOptions = {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          Authorization: `Bearer ${newToken}`,
+        },
+        credentials: "include",
+      };
+
+      response = await fetch(url, retryOptions);
+    }
+
+    return response;
+  };
+
   const value = useMemo(
     () => ({
       user,
@@ -138,6 +164,7 @@ export function AuthProvider({ children }) {
       login,
       logout,
       refreshAccessToken,
+      authFetch
     }),
     [user, isLoggedIn, loading]
   );

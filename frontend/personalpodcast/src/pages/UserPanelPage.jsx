@@ -1,30 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode';
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import { useAuth } from "../context/AuthContext";
 
 function UserPanelPage() {
-  const [user, setUser] = useState(null);
+  const { user: authUser, authFetch } = useAuth();
+
+  const [user, setUser] = useState(null);   // ✅ local DB user
   const [editingField, setEditingField] = useState(null);
   const [tempValue, setTempValue] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const token = localStorage.getItem("accessToken");
-  const decoded = token ? jwtDecode(token) : null;
-  const userId =
-    decoded?.["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid"];
+  const userId = authUser?.id;
 
+  // ================= FETCH USER =================
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch(
-          `https://localhost:7261/api/user/${userId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await authFetch(
+          `https://localhost:7261/api/user/${userId}`
         );
 
         if (!response.ok) {
@@ -43,9 +38,10 @@ function UserPanelPage() {
     if (userId) fetchUser();
   }, [userId]);
 
+  // ================= EDIT LOGIC =================
   const startEditing = (field) => {
     setEditingField(field);
-    setTempValue(user[field] ?? "");
+    setTempValue(user?.[field] ?? "");
     setConfirmPassword("");
     setError("");
   };
@@ -81,14 +77,11 @@ function UserPanelPage() {
         Password: editingField === "password" ? tempValue : null,
       };
 
-      const response = await fetch(
+      const response = await authFetch(
         `https://localhost:7261/api/user/${userId}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updateBody),
         }
       );
@@ -100,13 +93,14 @@ function UserPanelPage() {
       }
 
       const updatedUser = await response.json();
-      setUser(updatedUser);
+      setUser(updatedUser);   // ✅ now defined
       cancelEditing();
     } catch (err) {
       setError("Server error.");
     }
   };
 
+  // ================= UI =================
   const renderField = (label, field, type = "text") => (
     <div className="d-flex flex-column gap-2">
       <label style={{ color: "#D3DAD9" }}>{label}</label>
@@ -122,7 +116,6 @@ function UserPanelPage() {
             color: "#22222A",
             backgroundColor:
               editingField === field ? "#D3DAD9" : "#a6aaa9",
-            cursor: editingField === field ? "text" : "default",
           }}
         />
 
@@ -137,7 +130,7 @@ function UserPanelPage() {
           </>
         ) : (
           <button
-            className="btn btn-signup-custom d-flex align-items-center"
+            className="btn btn-signup-custom"
             onClick={() => startEditing(field)}
           >
             <i className="bi bi-pencil-square"></i>
@@ -145,7 +138,6 @@ function UserPanelPage() {
         )}
       </div>
 
-      {/* 🔥 Confirm password ONLY under password field */}
       {editingField === "password" && field === "password" && (
         <input
           type="password"

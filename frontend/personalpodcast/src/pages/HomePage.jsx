@@ -4,7 +4,7 @@ import axios from "axios";
 export default function HomePage() {
   const api = useMemo(() => {
     return axios.create({
-      baseURL: "",
+      baseURL: "https://localhost:7261",
     });
   }, []);
 
