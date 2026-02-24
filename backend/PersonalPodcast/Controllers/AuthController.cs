@@ -45,8 +45,6 @@ namespace PersonalPodcast.Controllers
                 return BadRequest(response);
             }
 
-            // MORE VALIDATIONS 
-
             string salt = BCrypt.Net.BCrypt.GenerateSalt();
             string PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, salt);
 
@@ -209,7 +207,7 @@ namespace PersonalPodcast.Controllers
                 HttpOnly = true,
                 Expires = DateTime.UtcNow.AddDays(7),
                 Secure = true,
-                SameSite = SameSiteMode.Strict
+                SameSite = SameSiteMode.None
             };
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
