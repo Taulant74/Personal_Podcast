@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState, useRef} from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 export default function HomePage() {
-  
   const api = useMemo(() => {
     return axios.create({
       baseURL: "https://localhost:7261",
     });
   }, []);
+
+  const { authFetch, isLoggedIn } = useAuth();
 
   const [episodes, setEpisodes] = useState([]);
   const [msg, setMsg] = useState("Loading episodes...");
@@ -29,6 +31,89 @@ export default function HomePage() {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
 
+  const [accessByEpisodeId, setAccessByEpisodeId] = useState({});
+
+  const getEpisodeId = (ep) => ep?.id ?? ep?.Id;
+
+  const fetchAccess = async (episodeId) => {
+    const res = await authFetch(
+      `https://localhost:7261/api/orders/episodes/${episodeId}`,
+      {
+        method: "GET",
+      },
+    );
+
+    if (res.status === 200) {
+      const data = await res.json();
+      setAccessByEpisodeId((prev) => ({
+        ...prev,
+        [episodeId]: { state: "owned", episode: data },
+      }));
+      return;
+    }
+
+    if (res.status === 404) {
+      setAccessByEpisodeId((prev) => ({
+        ...prev,
+        [episodeId]: { state: "not_owned" },
+      }));
+      return;
+    }
+
+    if (res.status === 401) {
+      setAccessByEpisodeId((prev) => ({
+        ...prev,
+        [episodeId]: { state: "not_logged_in" },
+      }));
+      return;
+    }
+
+    setAccessByEpisodeId((prev) => ({
+      ...prev,
+      [episodeId]: { state: "error" },
+    }));
+  };
+
+  const orderEpisode = async (episodeId) => {
+    const res = await authFetch("https://localhost:7261/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ episodeId }),
+    });
+
+    if (res.status === 200) {
+      await fetchAccess(episodeId);
+      const owned = accessByEpisodeId[episodeId]?.state === "owned";
+      if (!owned) {
+        const check = await authFetch(
+          `https://localhost:7261/api/orders/episodes/${episodeId}`,
+          {
+            method: "GET",
+          },
+        );
+        if (check.status === 200) {
+          const data = await check.json();
+          setAccessByEpisodeId((prev) => ({
+            ...prev,
+            [episodeId]: { state: "owned", episode: data },
+          }));
+          openPlayer(data);
+        }
+      } else {
+        openPlayer(accessByEpisodeId[episodeId].episode);
+      }
+      return;
+    }
+
+    if (res.status === 401) {
+      setAccessByEpisodeId((prev) => ({
+        ...prev,
+        [episodeId]: { state: "not_logged_in" },
+      }));
+      return;
+    }
+  };
+
   const incrementPlayOnce = async (episodeId) => {
     if (!episodeId) return;
 
@@ -44,7 +129,7 @@ export default function HomePage() {
           const id = e.id ?? e.Id;
           if (id !== episodeId) return e;
 
-          const current = (e.playCount ?? e.PlayCount ?? 0);
+          const current = e.playCount ?? e.PlayCount ?? 0;
           const newCount =
             res?.data && typeof res.data.playCount === "number"
               ? res.data.playCount
@@ -52,7 +137,7 @@ export default function HomePage() {
 
           if ("playCount" in e) return { ...e, playCount: newCount };
           return { ...e, PlayCount: newCount };
-        })
+        }),
       );
     } catch (err) {
       countedPlaysRef.current.delete(episodeId);
@@ -66,6 +151,14 @@ export default function HomePage() {
     setCurrentTime(0);
     setIsPlaying(false);
     incrementPlayOnce(episode.id ?? episode.Id);
+    const id = getEpisodeId(episode);
+    if (id) {
+      setAccessByEpisodeId((prev) => ({
+        ...prev,
+        [id]: { state: "loading" },
+      }));
+      fetchAccess(id);
+    }
   };
 
   const closePlayer = () => {
@@ -82,7 +175,10 @@ export default function HomePage() {
 
   const skip = (seconds) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime + seconds);
+      audioRef.current.currentTime = Math.max(
+        0,
+        audioRef.current.currentTime + seconds,
+      );
     }
   };
 
@@ -114,7 +210,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [playerOpen]);
-  
+
   useEffect(() => {
     let cancelled = false;
 
@@ -135,15 +231,15 @@ export default function HomePage() {
         const items = Array.isArray(data.items)
           ? data.items
           : Array.isArray(data.Items)
-          ? data.Items
-          : [];
+            ? data.Items
+            : [];
 
         const totalCount =
           typeof data.total === "number"
             ? data.total
             : typeof data.Total === "number"
-            ? data.Total
-            : 0;
+              ? data.Total
+              : 0;
 
         if (!cancelled) {
           setEpisodes(items);
@@ -152,14 +248,20 @@ export default function HomePage() {
           if (query.trim()) {
             setMsg(items.length ? "" : `No results for "${query.trim()}".`);
           } else {
-            setMsg(items.length ? "" : "No episodes yet. Upload one from the admin page.");
+            setMsg(
+              items.length
+                ? ""
+                : "No episodes yet. Upload one from the admin page.",
+            );
           }
         }
       } catch (err) {
         if (!cancelled) {
           setEpisodes([]);
           setTotal(0);
-          setMsg("Failed to load episodes. Check if backend is running and CORS is enabled.");
+          setMsg(
+            "Failed to load episodes. Check if backend is running and CORS is enabled.",
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -172,6 +274,22 @@ export default function HomePage() {
     };
   }, [api, query, page, pageSize]);
 
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    const ids = episodes.map(getEpisodeId).filter(Boolean);
+    ids.forEach((id) => {
+      if (!accessByEpisodeId[id]) {
+        setAccessByEpisodeId((prev) => ({
+          ...prev,
+          [id]: { state: "loading" },
+        }));
+        fetchAccess(id);
+      }
+    });
+  }, [episodes]);
+
   function formatDuration(seconds) {
     if (!seconds || Number.isNaN(seconds)) return null;
     const m = Math.floor(seconds / 60);
@@ -183,10 +301,12 @@ export default function HomePage() {
     const cats = Array.isArray(ep?.categories)
       ? ep.categories
       : Array.isArray(ep?.Categories)
-      ? ep.Categories
-      : null;
+        ? ep.Categories
+        : null;
 
-    return cats && cats.length ? <span className="pp-badge">🏷 {cats.join(", ")}</span> : null;
+    return cats && cats.length ? (
+      <span className="pp-badge">🏷 {cats.join(", ")}</span>
+    ) : null;
   }
 
   return (
@@ -397,19 +517,30 @@ export default function HomePage() {
           
       `}</style>
 
-      <div className="container pp-container px-5" style={{ backgroundColor: "#37353E" }}>
+      <div
+        className="container pp-container px-5"
+        style={{ backgroundColor: "#37353E" }}
+      >
         <div className="pp-hero">
           <h1 className="pp-title">All episodes. One place.</h1>
-          <p className="pp-subtitle">Browse your entire library and press play instantly — now with search.</p>
+          <p className="pp-subtitle">
+            Browse your entire library and press play instantly — now with
+            search.
+          </p>
         </div>
 
         <div className="d-flex flex-wrap gap-2 align-items-end justify-content-between mb-3">
           <div>
-            <h4 className="m-0" style={{ fontWeight: 900, letterSpacing: -0.3 }}>
+            <h4
+              className="m-0"
+              style={{ fontWeight: 900, letterSpacing: -0.3 }}
+            >
               Episodes
             </h4>
             <div className="pp-muted small">
-              {loading ? "Loading…" : `Showing: ${episodes.length} / Total: ${total}`}
+              {loading
+                ? "Loading…"
+                : `Showing: ${episodes.length} / Total: ${total}`}
             </div>
           </div>
 
@@ -456,7 +587,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {msg && !loading && <div className="alert pp-alert p-4 mb-4">{msg}</div>}
+        {msg && !loading && (
+          <div className="alert pp-alert p-4 mb-4">{msg}</div>
+        )}
 
         {!loading && totalPages > 1 && (
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -505,12 +638,21 @@ export default function HomePage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div className="col-12 col-md-6 col-lg-4" key={i}>
                 <div className="card pp-glass p-3">
-                  <div className="pp-skeleton" style={{ width: "75%", height: 16 }} />
+                  <div
+                    className="pp-skeleton"
+                    style={{ width: "75%", height: 16 }}
+                  />
                   <div className="pp-skeleton mt-3" style={{ width: "90%" }} />
                   <div className="pp-skeleton mt-2" style={{ width: "80%" }} />
                   <div className="d-flex gap-2 mt-3">
-                    <div className="pp-skeleton" style={{ width: 70, height: 26 }} />
-                    <div className="pp-skeleton" style={{ width: 90, height: 26 }} />
+                    <div
+                      className="pp-skeleton"
+                      style={{ width: 70, height: 26 }}
+                    />
+                    <div
+                      className="pp-skeleton"
+                      style={{ width: 90, height: 26 }}
+                    />
                   </div>
                   <div className="pp-skeleton mt-4" style={{ height: 38 }} />
                 </div>
@@ -529,47 +671,51 @@ export default function HomePage() {
                       <div className="flex-grow-1">
                         <h5 className="pp-epTitle">{ep.title ?? ep.Title}</h5>
                         {(ep.description ?? ep.Description) && (
-                          <div className="pp-epDesc">{ep.description ?? ep.Description}</div>
+                          <div className="pp-epDesc">
+                            {ep.description ?? ep.Description}
+                          </div>
                         )}
                       </div>
-
                     </div>
 
                     <div className="pp-metaRow">
                       {renderCategories(ep)}
                       {(ep.season ?? ep.Season) != null && (
-                        <span className="pp-badge">📺 Season {ep.season ?? ep.Season}</span>
+                        <span className="pp-badge">
+                          📺 Season {ep.season ?? ep.Season}
+                        </span>
                       )}
                       {(ep.durationSeconds ?? ep.DurationSeconds) ? (
                         <span className="pp-badge">
-                          ⏱ {formatDuration(ep.durationSeconds ?? ep.DurationSeconds)}
+                          ⏱{" "}
+                          {formatDuration(
+                            ep.durationSeconds ?? ep.DurationSeconds,
+                          )}
                         </span>
                       ) : null}
                       {(ep.playCount ?? ep.PlayCount) != null && (
-                        <span className="pp-badge pp-badge--plays">▶ {ep.playCount ?? ep.PlayCount} plays</span>
+                        <span className="pp-badge pp-badge--plays">
+                          ▶ {ep.playCount ?? ep.PlayCount} plays
+                        </span>
                       )}
                     </div>
 
-                    {(ep.audioUrl ?? ep.AudioUrl) ? (
-                      <button
-                        className="btn pp-glass"
-                        onClick={() => openPlayer(ep)}
-                        style={{
-                          marginTop: 14,
-                          color: "rgba(233,238,252,0.92)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          fontWeight: 800,
-                          borderRadius: 999,
-                          padding: "8px 14px",
-                          width: "100%",
-                          cursor: "pointer",
-                        }}
-                      >
-                        ▶ Open Player
-                      </button>
-                    ) : (
-                      <div className="mt-auto text-danger small pt-3">No audio URL found for this episode.</div>
-                    )}
+                    <button
+                      className="btn pp-glass"
+                      onClick={() => openPlayer(ep)}
+                      style={{
+                        marginTop: 14,
+                        color: "rgba(233,238,252,0.92)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        fontWeight: 800,
+                        borderRadius: 999,
+                        padding: "8px 14px",
+                        width: "100%",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Open
+                    </button>
                   </div>
                 </div>
               </div>
@@ -634,15 +780,26 @@ export default function HomePage() {
                 alignItems: "center",
                 justifyContent: "center",
               }}
-              onMouseEnter={(e) => (e.target.style.background = "rgba(255,255,255,0.14)")}
-              onMouseLeave={(e) => (e.target.style.background = "rgba(255,255,255,0.08)")}
+              onMouseEnter={(e) =>
+                (e.target.style.background = "rgba(255,255,255,0.14)")
+              }
+              onMouseLeave={(e) =>
+                (e.target.style.background = "rgba(255,255,255,0.08)")
+              }
               aria-label="Close"
             >
               ✕
             </button>
 
             <div style={{ marginBottom: 28 }}>
-              <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 900, marginBottom: 12 }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "1.4rem",
+                  fontWeight: 900,
+                  marginBottom: 12,
+                }}
+              >
                 {activeEpisode.title ?? activeEpisode.Title}
               </h2>
               {(activeEpisode.description ?? activeEpisode.Description) && (
@@ -658,13 +815,20 @@ export default function HomePage() {
                 </p>
               )}
 
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginTop: 14,
+                }}
+              >
                 {(() => {
                   const cats = Array.isArray(activeEpisode?.categories)
                     ? activeEpisode.categories
                     : Array.isArray(activeEpisode?.Categories)
-                    ? activeEpisode.Categories
-                    : null;
+                      ? activeEpisode.Categories
+                      : null;
                   return cats && cats.length ? (
                     <span
                       className="pp-badge"
@@ -699,7 +863,8 @@ export default function HomePage() {
                   </span>
                 )}
 
-                {(activeEpisode.durationSeconds ?? activeEpisode.DurationSeconds) ? (
+                {(activeEpisode.durationSeconds ??
+                activeEpisode.DurationSeconds) ? (
                   <span
                     style={{
                       borderRadius: 999,
@@ -711,8 +876,11 @@ export default function HomePage() {
                       color: "rgba(233,238,252,0.88)",
                     }}
                   >
-                    ⏱ {(() => {
-                      const s = activeEpisode.durationSeconds ?? activeEpisode.DurationSeconds;
+                    ⏱{" "}
+                    {(() => {
+                      const s =
+                        activeEpisode.durationSeconds ??
+                        activeEpisode.DurationSeconds;
                       const m = Math.floor(s / 60);
                       const sec = s % 60;
                       return `${m}m ${String(sec).padStart(2, "0")}s`;
@@ -720,7 +888,8 @@ export default function HomePage() {
                   </span>
                 ) : null}
 
-                {(activeEpisode.playCount ?? activeEpisode.PlayCount) != null && (
+                {(activeEpisode.playCount ?? activeEpisode.PlayCount) !=
+                  null && (
                   <span
                     style={{
                       borderRadius: 999,
@@ -738,190 +907,290 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div
-              style={{
-                background: "rgba(0,0,0,0.22)",
-                border: "1px solid rgba(255,255,255,0.10)",
-                borderRadius: 14,
-                padding: 16,
-                marginBottom: 20,
-              }}
-            >
-              <audio
-                ref={audioRef}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-                onLoadedMetadata={(e) => setDuration(e.target.duration)}
-                onEnded={() => setIsPlaying(false)}
-                style={{ display: "none" }}
-              >
-                <source src={activeEpisode.audioUrl ?? activeEpisode.AudioUrl} />
-              </audio>
+            {(() => {
+              const id = getEpisodeId(activeEpisode);
+              const access = id ? accessByEpisodeId[id] : null;
 
-              <div style={{ marginBottom: 12 }}>
-                <input
-                  type="range"
-                  min="0"
-                  max={duration || 0}
-                  value={currentTime}
-                  onChange={(e) => {
-                    if (audioRef.current) {
-                      audioRef.current.currentTime = parseFloat(e.target.value);
-                    }
-                  }}
-                  style={{
-                    width: "100%",
-                    height: 6,
-                    borderRadius: 3,
-                    background: "rgba(255,255,255,0.10)",
-                    outline: "none",
-                    cursor: "pointer",
-                    accentColor: "rgba(233,238,252,0.92)",
-                  }}
-                />
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 8,
-                    color: "rgba(233,238,252,0.72)",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  <span>
-                    {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, "0")}
-                  </span>
-                  <span>
-                    {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, "0")}
-                  </span>
-                </div>
-              </div>
+              if (!id) {
+                return <div className="text-danger">Invalid episode.</div>;
+              }
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 14,
-                }}
-              >
-                <button
-                  onClick={() => skip(-15)}
-                  style={{
-                    flex: 1,
-                    borderRadius: 999,
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.08)",
-                    color: "rgba(233,238,252,0.9)",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    padding: "6px 10px",
-                    transition: "background .15s ease, transform .15s ease",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.14)";
-                    e.target.style.transform = "translateY(-1px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.08)";
-                    e.target.style.transform = "translateY(0)";
-                  }}
-                >
-                  ⏮ -15s
-                </button>
+              if (!access || access.state === "loading") {
+                return <div className="pp-muted">Checking access…</div>;
+              }
 
-                <button
-                  onClick={togglePlayPause}
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 999,
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.10)",
-                    color: "rgba(233,238,252,0.95)",
-                    fontWeight: 900,
-                    fontSize: 20,
-                    cursor: "pointer",
-                    transition: "background .15s ease, transform .15s ease",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.14)";
-                    e.target.style.transform = "scale(1.05)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.10)";
-                    e.target.style.transform = "scale(1)";
-                  }}
-                >
-                  {isPlaying ? "⏸" : "▶"}
-                </button>
-
-                <button
-                  onClick={() => skip(15)}
-                  style={{
-                    flex: 1,
-                    borderRadius: 999,
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.08)",
-                    color: "rgba(233,238,252,0.9)",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    padding: "6px 10px",
-                    transition: "background .15s ease, transform .15s ease",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.14)";
-                    e.target.style.transform = "translateY(-1px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.08)";
-                    e.target.style.transform = "translateY(0)";
-                  }}
-                >
-                  +15s ⏭
-                </button>
-              </div>
-
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+              if (access.state === "not_logged_in") {
+                return (
                   <button
-                    key={rate}
-                    onClick={() => setSpeed(rate)}
+                    className="btn pp-glass"
+                    onClick={() => (window.location.href = "/login")}
                     style={{
-                      borderRadius: 999,
+                      width: "100%",
+                      color: "rgba(233,238,252,0.92)",
                       border: "1px solid rgba(255,255,255,0.12)",
-                      background:
-                        playbackRate === rate ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.08)",
-                      color: "rgba(233,238,252,0.9)",
                       fontWeight: 800,
-                      fontSize: 11,
-                      padding: "5px 10px",
-                      transition: "background .15s ease",
+                      borderRadius: 999,
+                      padding: "10px 14px",
                       cursor: "pointer",
                     }}
-                    onMouseEnter={(e) => {
-                      if (playbackRate !== rate) {
-                        e.target.style.background = "rgba(255,255,255,0.12)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (playbackRate !== rate) {
-                        e.target.style.background = "rgba(255,255,255,0.08)";
-                      }
+                  >
+                    Log in
+                  </button>
+                );
+              }
+
+              if (access.state === "not_owned") {
+                return (
+                  <button
+                    className="btn pp-glass"
+                    onClick={() => (window.location.href = `/order/${id}`)}
+                    style={{
+                      width: "100%",
+                      color: "rgba(233,238,252,0.92)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      fontWeight: 800,
+                      borderRadius: 999,
+                      padding: "10px 14px",
+                      cursor: "pointer",
                     }}
                   >
-                    {rate}x
+                    Order
                   </button>
-                ))}
-              </div>
-            </div>
+                );
+              }
+
+              if (access.state === "owned") {
+                const src =
+                  access.episode?.audioUrl ?? access.episode?.AudioUrl;
+
+                return (
+                  <div
+                    style={{
+                      background: "rgba(0,0,0,0.22)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      borderRadius: 14,
+                      padding: 16,
+                      marginBottom: 20,
+                    }}
+                  >
+                    <audio
+                      ref={audioRef}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                      onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+                      onLoadedMetadata={(e) => setDuration(e.target.duration)}
+                      onEnded={() => setIsPlaying(false)}
+                      style={{ display: "none" }}
+                    >
+                      <source src={src} />
+                    </audio>
+
+                    {/* everything below stays EXACTLY like your current player UI */}
+                    <div style={{ marginBottom: 12 }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max={duration || 0}
+                        value={currentTime}
+                        onChange={(e) => {
+                          if (audioRef.current) {
+                            audioRef.current.currentTime = parseFloat(
+                              e.target.value,
+                            );
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          height: 6,
+                          borderRadius: 3,
+                          background: "rgba(255,255,255,0.10)",
+                          outline: "none",
+                          cursor: "pointer",
+                          accentColor: "rgba(233,238,252,0.92)",
+                        }}
+                      />
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginTop: 8,
+                          color: "rgba(233,238,252,0.72)",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <span>
+                          {Math.floor(currentTime / 60)}:
+                          {String(Math.floor(currentTime % 60)).padStart(
+                            2,
+                            "0",
+                          )}
+                        </span>
+                        <span>
+                          {Math.floor(duration / 60)}:
+                          {String(Math.floor(duration % 60)).padStart(2, "0")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 12,
+                        marginBottom: 14,
+                      }}
+                    >
+                      <button
+                        onClick={() => skip(-15)}
+                        style={{
+                          flex: 1,
+                          borderRadius: 999,
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          background: "rgba(255,255,255,0.08)",
+                          color: "rgba(233,238,252,0.9)",
+                          fontWeight: 800,
+                          fontSize: 12,
+                          padding: "6px 10px",
+                          transition:
+                            "background .15s ease, transform .15s ease",
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = "rgba(255,255,255,0.14)";
+                          e.target.style.transform = "translateY(-1px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = "rgba(255,255,255,0.08)";
+                          e.target.style.transform = "translateY(0)";
+                        }}
+                      >
+                        ⏮ -15s
+                      </button>
+
+                      <button
+                        onClick={togglePlayPause}
+                        style={{
+                          width: 50,
+                          height: 50,
+                          borderRadius: 999,
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          background: "rgba(255,255,255,0.10)",
+                          color: "rgba(233,238,252,0.95)",
+                          fontWeight: 900,
+                          fontSize: 20,
+                          cursor: "pointer",
+                          transition:
+                            "background .15s ease, transform .15s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = "rgba(255,255,255,0.14)";
+                          e.target.style.transform = "scale(1.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = "rgba(255,255,255,0.10)";
+                          e.target.style.transform = "scale(1)";
+                        }}
+                      >
+                        {isPlaying ? "⏸" : "▶"}
+                      </button>
+
+                      <button
+                        onClick={() => skip(15)}
+                        style={{
+                          flex: 1,
+                          borderRadius: 999,
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          background: "rgba(255,255,255,0.08)",
+                          color: "rgba(233,238,252,0.9)",
+                          fontWeight: 800,
+                          fontSize: 12,
+                          padding: "6px 10px",
+                          transition:
+                            "background .15s ease, transform .15s ease",
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = "rgba(255,255,255,0.14)";
+                          e.target.style.transform = "translateY(-1px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = "rgba(255,255,255,0.08)";
+                          e.target.style.transform = "translateY(0)";
+                        }}
+                      >
+                        +15s ⏭
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        flexWrap: "wrap",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                        <button
+                          key={rate}
+                          onClick={() => setSpeed(rate)}
+                          style={{
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,255,255,0.12)",
+                            background:
+                              playbackRate === rate
+                                ? "rgba(255,255,255,0.16)"
+                                : "rgba(255,255,255,0.08)",
+                            color: "rgba(233,238,252,0.9)",
+                            fontWeight: 800,
+                            fontSize: 11,
+                            padding: "5px 10px",
+                            transition: "background .15s ease",
+                            cursor: "pointer",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (playbackRate !== rate) {
+                              e.target.style.background =
+                                "rgba(255,255,255,0.12)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (playbackRate !== rate) {
+                              e.target.style.background =
+                                "rgba(255,255,255,0.08)";
+                            }
+                          }}
+                        >
+                          {rate}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  className="btn pp-glass"
+                  onClick={() => fetchAccess(id)}
+                  style={{
+                    width: "100%",
+                    color: "rgba(233,238,252,0.92)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    fontWeight: 800,
+                    borderRadius: 999,
+                    padding: "10px 14px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Retry
+                </button>
+              );
+            })()}
           </div>
         </div>
       )}

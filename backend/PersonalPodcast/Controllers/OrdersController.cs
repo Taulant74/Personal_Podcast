@@ -119,5 +119,43 @@ namespace PersonalPodcast.Controllers
 
             return Ok(episode);
         }
+
+        [Authorize]
+        [HttpGet("my-episodes")]
+        public async Task<IActionResult> GetMyEpisodes()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.Sid)
+                            ?? User.FindFirstValue("sid");
+
+            if (string.IsNullOrWhiteSpace(userIdStr))
+                return Unauthorized();
+
+            if (!int.TryParse(userIdStr, out var userId))
+                return Unauthorized();
+
+            var episodes = await _db.Orders
+                .Where(o => o.UserId == userId)
+                .Join(_db.Episodes,
+                      o => o.EpisodeId,
+                      e => e.Id,
+                      (o, e) => e)
+                .Distinct()
+                .OrderByDescending(e => e.CreatedAt)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Title,
+                    e.Description,
+                    e.AudioUrl,
+                    e.DurationSeconds,
+                    e.Season,
+                    e.PublishedDate,
+                    e.PlayCount,
+                    e.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(episodes);
+        }
     }
 }
