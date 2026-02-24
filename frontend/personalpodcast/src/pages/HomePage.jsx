@@ -943,7 +943,7 @@ export default function HomePage() {
                 return (
                   <button
                     className="btn pp-glass"
-                    onClick={() => orderEpisode(id)}
+                    onClick={() => (window.location.href = `/order/${id}`)}
                     style={{
                       width: "100%",
                       color: "rgba(233,238,252,0.92)",
