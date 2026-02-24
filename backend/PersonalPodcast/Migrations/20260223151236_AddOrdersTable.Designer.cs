@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PersonalPodcast.Data;
 
@@ -11,9 +12,11 @@ using PersonalPodcast.Data;
 namespace PersonalPodcast.Migrations
 {
     [DbContext(typeof(PodcastDbContext))]
-    partial class PodcastDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260223151236_AddOrdersTable")]
+    partial class AddOrdersTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,9 +75,6 @@ namespace PersonalPodcast.Migrations
                     b.Property<DateTime?>("PublishedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("PublisherId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("Season")
                         .HasColumnType("int");
 
@@ -83,8 +83,6 @@ namespace PersonalPodcast.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PublisherId");
 
                     b.ToTable("Episodes");
                 });
@@ -204,16 +202,6 @@ namespace PersonalPodcast.Migrations
 
                             t.HasCheckConstraint("CK_User_Role_Values", "[Role] IN ('User', 'Publisher', 'Admin')");
                         });
-                });
-
-            modelBuilder.Entity("PersonalPodcast.Models.Episode", b =>
-                {
-                    b.HasOne("PersonalPodcast.Models.User", "Publisher")
-                        .WithMany()
-                        .HasForeignKey("PublisherId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Publisher");
                 });
 
             modelBuilder.Entity("PersonalPodcast.Models.EpisodeCategory", b =>
