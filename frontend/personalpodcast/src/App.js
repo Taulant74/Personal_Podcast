@@ -12,6 +12,7 @@ import { AuthProvider } from "./context/AuthContext";
 import UserPanelPage from "./pages/UserPanelPage";
 import RequireRole from "./components/RequireRole";
 import OrderPage from './pages/OrderPage';
+import MyEpisodesPage from './pages/MyEpisodesPage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/order/:episodeId" element={<OrderPage />} />
             <Route path="/user-panel" element={<UserPanelPage />} />
+            <Route path="/my-episodes" element={<MyEpisodesPage />} />
             <Route path="/episodes" element={<EpisodePage />} />
             <Route element={<RequireRole allowedRoles={["Admin"]} />}>
               <Route path="/admin" element={<AdminDashboard />} />
