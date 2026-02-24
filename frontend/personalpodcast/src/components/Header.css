@@ -1,0 +1,69 @@
+.nav-link-custom {
+  color: #D3DAD9;
+  transition: all 0.3s ease;
+}
+
+.nav-link-custom.active {
+  color: #DDA853 !important; 
+  font-weight: bold;
+}
+
+.nav-link-custom:hover {
+  color: #ffffff;
+}
+
+.btn-login-custom {
+  color: #D3DAD9 !important;
+  border: 1px solid #D3DAD9 !important;
+  background-color: transparent;
+  transition: all 0.4s ease;
+}
+
+.btn-login-custom:hover {
+  background-color: #D3DAD9 !important;
+  color: #44444E !important;
+}
+
+.btn-signup-custom {
+  background-color: #D3DAD9 !important;
+  border: 1px solid #D3DAD9 !important;
+  color: #44444E !important;
+  border: none;
+  transition: all 0.4s ease;
+}
+
+.btn-signup-custom:hover {
+  background-color: #DDA853 !important;
+  border: 1px solid #DDA853 !important;
+  color: #ffffff !important;
+}
+
+/* dropdown helpers for user menu */
+.user-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 150px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+.user-dropdown-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  color: #44444E;
+  text-decoration: none;
+  display: block;
+}
+
+.user-dropdown-item:hover {
+  background-color: #f0f0f0;
+}

@@ -1,32 +1,49 @@
-import './App.css';
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import EpisodesUpload from './pages/EpisodesUpload';
-
-function Home() {
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Podcast Platform Test</h2>
-      <p>Welcome to the homepage.</p>
-      <Link to="/episodes">Go to Upload & Search Episodes</Link>
-    </div>
-  );
-}
+import "./App.css";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Header from "./components/Header";
+import EpisodePage from "./pages/EpisodePage";
+import HomePage from "./pages/HomePage";
+import AdminDashboard from "./pages/AdminDashboard";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import CategoryPage from "./pages/CategoryPage";
+import PublisherDashboard from "./pages/PublisherDashboard";
+import { AuthProvider } from "./context/AuthContext";
+import UserPanelPage from "./pages/UserPanelPage";
+import RequireRole from "./components/RequireRole";
+import OrderPage from './pages/OrderPage';
+import MyEpisodesPage from './pages/MyEpisodesPage';
 
 function App() {
   return (
-    <Router>
-      <div>
-        <nav style={{ padding: 10, background: "#f5f5f5" }}>
-          <Link to="/" style={{ marginRight: 15 }}>Home</Link>
-          <Link to="/episodes">Episodes</Link>
-        </nav>
+    <AuthProvider>
+      <Router>
+        <div className="pp-root">
+          {/* Header */}
+          <Header />
+          {/* Faqet */}
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/order/:episodeId" element={<OrderPage />} />
+            <Route path="/user-panel" element={<UserPanelPage />} />
+            <Route path="/my-episodes" element={<MyEpisodesPage />} />
+            <Route path="/episodes" element={<EpisodePage />} />
+            <Route element={<RequireRole allowedRoles={["Admin"]} />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
 
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/episodes" element={<EpisodesUpload />} />
-        </Routes>
-      </div>
-    </Router>
+            <Route
+              element={<RequireRole allowedRoles={["Publisher", "Admin"]} />}
+            >
+              <Route path="/publisher" element={<PublisherDashboard />} />
+            </Route>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/categories" element={<CategoryPage />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

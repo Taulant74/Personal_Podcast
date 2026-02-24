@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: personalpodcast-api
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      DB_CONNECTION: "${DB_CONNECTION}"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
+    ports:
+      - "8080:8080"
+    networks:
+      - podcast-net
+
+  frontend:
+    build:
+      context: ./frontend/personalpodcast
+      dockerfile: Dockerfile
+    container_name: personalpodcast-fe
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - podcast-net
+
+networks:
+  podcast-net:
+    driver: bridge

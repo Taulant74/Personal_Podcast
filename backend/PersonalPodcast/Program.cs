@@ -1,9 +1,8 @@
+using CloudinaryDotNet;
 using DotNetEnv;
-<<<<<<< HEAD
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-=======
 using Microsoft.AspNetCore.Authentication.JwtBearer;
->>>>>>> main
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PersonalPodcast.Data;
@@ -18,7 +17,7 @@ Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLO
 
 var builder = WebApplication.CreateBuilder(args);
 
-<<<<<<< HEAD
+
 // CORS policy per me lan backendin me komuniku me frontin 
 builder.Services.AddCors(options =>
 {
@@ -27,48 +26,94 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins("http://localhost:3000") // e boni me origjinen e frontit t juve deri te hostojna frontin
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod() // nese do te dergojme cookies nga fronti, e boni me kete rresht
+                  .AllowCredentials(); 
         });
 });
 
 
-=======
+
 //----------------------------------------------//
 // Vendosni sherbimet tjera posht qetij komenti,
 // Mos e kaloni builder.build()
 //----------------------------------------------//
 
 //Jwt
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
-{
-
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ClockSkew = TimeSpan.Zero,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-    };
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            RoleClaimType = "role",
+
+            NameClaimType = "unique_name"
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                Console.WriteLine("=== JWT AUTH FAILED === hahhahahaah");
+                Console.WriteLine(ctx.Exception.ToString());
+                Console.WriteLine("=======================");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                Console.WriteLine("=== JWT VALIDATED ===");
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+// Cloudinary
+builder.Services.AddSingleton(sp =>
+{
+    var cloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
+    var apiKey = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
+    var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
+
+    if (string.IsNullOrWhiteSpace(cloudName) ||
+        string.IsNullOrWhiteSpace(apiKey) ||
+        string.IsNullOrWhiteSpace(apiSecret))
+    {
+        throw new Exception("Cloudinary env vars missing. Check CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET");
+    }
+
+    var cloudinary = new Cloudinary(new Account(cloudName, apiKey, apiSecret));
+
+    cloudinary.Api.Timeout = 10 * 60 * 1000; // 10 minutes
+
+    return cloudinary;
 });
 
-//cloudinary
 builder.Services.AddScoped<CloudinaryService>();
->>>>>>> main
+
 
 // Databaza
+var cs = Environment.GetEnvironmentVariable("DB_CONNECTION");
+
+if (string.IsNullOrWhiteSpace(cs))
+    throw new Exception("DB_CONNECTION is missing. Put it in .env or environment variables.");
+
 builder.Services.AddDbContext<PodcastDbContext>(options =>
-                                               //ket connection stringin e ndrroni me ate qe e ke ti ne appsettings.json
-    options.UseSqlServer(builder.Configuration.GetConnectionString("PersonalPodcastDatabase")));
+    options.UseSqlServer(cs));
 
 // Controllerat
 builder.Services.AddControllers();
 
+builder.Services.AddScoped<UserCreateService>();
 
-builder.Services.AddScoped<CloudinaryService>();
 
 builder.Services.Configure<IISServerOptions>(options =>
 {
@@ -80,13 +125,25 @@ builder.Services.Configure<KestrelServerOptions>(options =>
     options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
 });
 
+//user service per me kriju usera prej admindashboardit
+builder.Services.AddScoped<UserService>();
 
-  
+
 // Swaggeri
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(t => t.FullName); 
+});
+
+builder.Services.AddScoped<PersonalPodcast.Services.IValidationService, PersonalPodcast.Services.ValidationService>();
+builder.Services.AddScoped<PersonalPodcast.Services.IAuthService, PersonalPodcast.Services.AuthService>();
+builder.Services.AddScoped<PersonalPodcast.Services.IUserService, PersonalPodcast.Services.UserService>();
 
 var app = builder.Build();
+
+app.MapHealthChecks("/health");
 
 app.UseCors("AllowFrontend");
 
@@ -97,7 +154,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PodcastDbContext>();
+    //db.Database.Migrate();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

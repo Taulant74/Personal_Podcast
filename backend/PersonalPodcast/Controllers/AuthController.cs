@@ -38,7 +38,12 @@ namespace PersonalPodcast.Controllers
                 return BadRequest(response);
             }
 
-            // MORE VALIDATIONS 
+            if (!IsValidPassword(request.Password))
+            {
+                response.success = false;
+                response.message = "Password must be at least 8 characters long and contain at least one letter and one number.";
+                return BadRequest(response);
+            }
 
             string salt = BCrypt.Net.BCrypt.GenerateSalt();
             string PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, salt);
@@ -74,6 +79,13 @@ namespace PersonalPodcast.Controllers
         {
             var response = new RegisterResponseDto();
             User? user = null;
+
+            if (!IsValidPassword(request.Password))
+            {
+                response.success = false;
+                response.message = "Password must be at least 8 characters long and contain at least one letter and one number.";
+                return BadRequest(response);
+            }
 
             if (request.Identifier.Contains("@"))
             {
@@ -195,7 +207,7 @@ namespace PersonalPodcast.Controllers
                 HttpOnly = true,
                 Expires = DateTime.UtcNow.AddDays(7),
                 Secure = true,
-                SameSite = SameSiteMode.Strict
+                SameSite = SameSiteMode.None
             };
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
@@ -226,6 +238,27 @@ namespace PersonalPodcast.Controllers
             {
                 return null;
             }
+        }
+
+        private bool IsValidPassword(string? password)
+        {
+            if (string.IsNullOrEmpty(password))
+                return false;
+
+            if (password.Length < 8)
+                return false;
+
+            bool hasLetter = false;
+            bool hasDigit = false;
+
+            foreach (var c in password)
+            {
+                if (char.IsLetter(c)) hasLetter = true;
+                if (char.IsDigit(c)) hasDigit = true;
+                if (hasLetter && hasDigit) return true;
+            }
+
+            return false;
         }
 
     }

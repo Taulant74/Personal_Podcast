@@ -17,6 +17,25 @@ namespace PersonalPodcast.Controllers
             _db = db;
         }
 
+        [HttpPost("{id:int}/play")]
+        public async Task<IActionResult> IncrementPlay([FromRoute] int id)
+        {
+            var updated = await _db.Episodes
+                .Where(e => e.Id == id && e.IsPublished)
+                .ExecuteUpdateAsync(setters =>
+                    setters.SetProperty(e => e.PlayCount, e => e.PlayCount + 1));
+
+            if (updated == 0)
+                return NotFound(new { message = "Episode not found." });
+
+            var playCount = await _db.Episodes
+                .Where(e => e.Id == id)
+                .Select(e => e.PlayCount)
+                .FirstAsync();
+
+            return Ok(new { id, playCount });
+        }
+
         [HttpGet("search")]
         public async Task<ActionResult<PagedResultDto<EpisodeSearchItemDto>>> Search([FromQuery] EpisodeSearchRequestDto? request)
         {
@@ -42,28 +61,10 @@ namespace PersonalPodcast.Controllers
                 );
             }
 
-            var sortBy = (request.SortBy ?? "date").Trim().ToLowerInvariant();
-            var sortDir = (request.SortDir ?? "desc").Trim().ToLowerInvariant();
-            var asc = sortDir == "asc";
-
             var total = await query.CountAsync();
 
-            query = sortBy switch
-            {
-                "title" => asc
-                    ? query.OrderBy(e => e.Title).ThenBy(e => e.Id)
-                    : query.OrderByDescending(e => e.Title).ThenByDescending(e => e.Id),
-
-                "playcount" => asc
-                    ? query.OrderBy(e => e.PlayCount).ThenBy(e => e.Id)
-                    : query.OrderByDescending(e => e.PlayCount).ThenByDescending(e => e.Id),
-
-                _ => asc
-                    ? query.OrderBy(e => e.PublishedDate ?? e.CreatedAt).ThenBy(e => e.Id)
-                    : query.OrderByDescending(e => e.PublishedDate ?? e.CreatedAt).ThenByDescending(e => e.Id),
-            };
-
             var raw = await query
+                .OrderByDescending(e => e.PublishedDate ?? e.CreatedAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(e => new
@@ -80,7 +81,6 @@ namespace PersonalPodcast.Controllers
                         .Select(ec => ec.Category!.Name)
                 })
                 .ToListAsync();
-
 
             var items = raw.Select(e => new EpisodeSearchItemDto
             {
@@ -102,5 +102,56 @@ namespace PersonalPodcast.Controllers
                 Items = items
             });
         }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<EpisodeDetailsDto>> GetById([FromRoute] int id)
+        {
+            var raw = await _db.Episodes
+                .AsNoTracking()
+                .Where(e => e.IsPublished && e.Id == id)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Title,
+                    e.Description,
+                    e.AudioUrl,
+                    e.DurationSeconds,
+                    e.Season,
+                    e.IsPublished,
+                    e.PublishedDate,
+                    e.PlayCount,
+                    e.CreatedAt,
+                    Categories = e.EpisodeCategories
+                        .Where(ec => ec.Category != null)
+                        .Select(ec => ec.Category!.Name)
+                })
+                .FirstOrDefaultAsync();
+
+            if (raw == null)
+            {
+                return NotFound(new { message = "Episode not found." });
+            }
+
+            var dto = new EpisodeDetailsDto
+            {
+                Id = raw.Id,
+                Title = raw.Title,
+                Description = raw.Description,
+                AudioUrl = raw.AudioUrl,
+                DurationSeconds = raw.DurationSeconds,
+                Season = raw.Season,
+                IsPublished = raw.IsPublished,
+                PublishedDate = raw.PublishedDate,
+                PlayCount = raw.PlayCount,
+                CreatedAt = raw.CreatedAt,
+                Categories = raw.Categories
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Distinct()
+                    .ToList()
+            };
+
+            return Ok(dto);
+        }
+
     }
 }
