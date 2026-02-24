@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useAuth } from "../context/AuthContext";
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function UserPanelPage() {
-  const { user: authUser, authFetch } = useAuth();
+  const { user: authUser, authFetch, loading: authLoading } = useAuth();
 
-  const [user, setUser] = useState(null);   // ✅ local DB user
+  const [user, setUser] = useState(null);  
   const [editingField, setEditingField] = useState(null);
   const [tempValue, setTempValue] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -14,12 +15,15 @@ function UserPanelPage() {
 
   const userId = authUser?.id;
 
-  // ================= FETCH USER =================
   useEffect(() => {
+    if (!authUser?.id) return;
+
     const fetchUser = async () => {
+      setLoading(true);
+
       try {
         const response = await authFetch(
-          `https://localhost:7261/api/user/${userId}`
+          `https://localhost:7261/api/user/${authUser.id}`
         );
 
         if (!response.ok) {
@@ -33,12 +37,11 @@ function UserPanelPage() {
       } finally {
         setLoading(false);
       }
-    };
+  };
 
-    if (userId) fetchUser();
-  }, [userId]);
+  fetchUser();
+}, [authUser]);
 
-  // ================= EDIT LOGIC =================
   const startEditing = (field) => {
     setEditingField(field);
     setTempValue(user?.[field] ?? "");
@@ -93,14 +96,17 @@ function UserPanelPage() {
       }
 
       const updatedUser = await response.json();
-      setUser(updatedUser);   // ✅ now defined
+      setUser(updatedUser);   
       cancelEditing();
     } catch (err) {
       setError("Server error.");
     }
   };
 
-  // ================= UI =================
+  if (authLoading) {
+    return <div className="text-white p-5"><LoadingSpinner /></div>;
+  }
+
   const renderField = (label, field, type = "text") => (
     <div className="d-flex flex-column gap-2">
       <label style={{ color: "#D3DAD9" }}>{label}</label>
@@ -155,8 +161,13 @@ function UserPanelPage() {
     </div>
   );
 
-  if (loading) return <div className="text-white p-5">Loading...</div>;
-  if (!user) return <div className="text-danger p-5">User not found</div>;
+  if (!authUser) {
+    return <div className="text-danger p-5">Not authenticated</div>;
+  }
+
+  if (loading) {
+    return <div className="d-flex justify-content-center mt-5 text-white p-5"><LoadingSpinner /></div>;
+  }
 
   return (
     <div className="d-flex pt-5 align-items-center justify-content-center">

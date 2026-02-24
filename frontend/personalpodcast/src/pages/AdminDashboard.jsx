@@ -758,9 +758,17 @@ export default function AdminDashboard() {
                         <td>{u.age ?? "—"}</td>
                         <td>{u.email || "—"}</td>
                         <td>
-                          <span className={`badge ${u.role === "Admin" ? "text-bg-danger" : "text-bg-secondary"}`}>
-                            {u.role}
-                          </span>
+                        <span
+  className={`badge ${
+    u.role === "Admin"
+      ? "text-bg-danger"
+      : u.role === "Publisher"
+      ? "text-bg-primary"
+      : "text-bg-secondary"
+  }`}
+>
+  {u.role}
+</span>
                         </td>
                         <td className="text-end">
                           <button className="btn btn-sm btn-outline-primary me-2" onClick={() => openEditUser(u)}>
@@ -980,10 +988,15 @@ function UserForm({ form, setForm, onSubmit, submitLabel, requirePassword }) {
 
         <div className="col-md-6">
           <label className="form-label">Role</label>
-          <select className="form-select" value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}>
-            <option value="User">User</option>
-            <option value="Admin">Admin</option>
-          </select>
+          <select
+  className="form-select"
+  value={form.role}
+  onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
+>
+  <option value="User">User</option>
+  <option value="Publisher">Publisher</option>
+  <option value="Admin">Admin</option>
+</select>
         </div>
 
         <div className="col-md-6">

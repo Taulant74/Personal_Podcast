@@ -12,6 +12,7 @@ namespace PersonalPodcast.Data
         public DbSet<Episode> Episodes => Set<Episode>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<EpisodeCategory> EpisodeCategories => Set<EpisodeCategory>();
+        public DbSet<Order> Orders => Set<Order>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>(entity =>
@@ -76,6 +77,15 @@ namespace PersonalPodcast.Data
 
             modelBuilder.Entity<EpisodeCategory>().HasKey(ec => new { ec.EpisodeId, ec.CategoryId });
 
+            modelBuilder.Entity<Episode>()
+            .HasIndex(e => e.PublisherId);
+
+            modelBuilder.Entity<Episode>()
+                .HasOne(e => e.Publisher)
+                .WithMany()
+                .HasForeignKey(e => e.PublisherId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<EpisodeCategory>()
                 .HasOne(ec => ec.Episode)
                 .WithMany(e => e.EpisodeCategories)
@@ -87,6 +97,31 @@ namespace PersonalPodcast.Data
                 .WithMany(c => c.EpisodeCategories)
                 .HasForeignKey(ec => ec.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Order>(entity =>
+            {
+                entity.HasKey(o => o.Id);
+                entity.Property(o => o.Id).ValueGeneratedOnAdd();
+
+                entity.Property(o => o.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()")
+                    .IsRequired();
+
+                entity.HasOne(o => o.User)
+                    .WithMany()
+                    .HasForeignKey(o => o.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(o => o.Episode)
+                    .WithMany()
+                    .HasForeignKey(o => o.EpisodeId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(o => new { o.UserId, o.EpisodeId })
+                    .IsUnique();
+
+                entity.ToTable("Orders");
+            });
         }
     }
 }

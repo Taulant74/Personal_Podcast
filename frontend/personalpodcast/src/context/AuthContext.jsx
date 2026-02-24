@@ -119,42 +119,45 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const authFetch = async (url, options = {}) => {
-    const accessToken = localStorage.getItem("accessToken");
+const authFetch = async (url, options = {}) => {
+  const accessToken = localStorage.getItem("accessToken");
 
-    const fetchOptions = {
-      ...options,
-      headers: {
-        ...(options.headers || {}),
-        Authorization: `Bearer ${accessToken}`,
-      },
-      credentials: "include",
-    };
+  const headers = {
+    ...(options.headers || {}),
+  };
 
-    let response = await fetch(url, fetchOptions);
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
 
-    if (response.status === 401) {
-      const newToken = await refreshAccessToken();
+  const fetchOptions = {
+    ...options,
+    headers,
+    credentials: "include",
+  };
 
-      if (!newToken) {
-        logout();
-        return response;
-      }
+  let response = await fetch(url, fetchOptions);
 
-      const retryOptions = {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          Authorization: `Bearer ${newToken}`,
-        },
-        credentials: "include",
-      };
+  if (response.status === 401) {
+    const newToken = await refreshAccessToken();
 
-      response = await fetch(url, retryOptions);
+    if (!newToken) {
+      localStorage.removeItem("accessToken");
+      setUser(null);
+      return response;
     }
 
-    return response;
-  };
+    headers.Authorization = `Bearer ${newToken}`;
+
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    });
+  }
+
+  return response;
+};
 
   const value = useMemo(
     () => ({

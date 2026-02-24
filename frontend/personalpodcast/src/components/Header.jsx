@@ -7,7 +7,7 @@ function Header() {
   const { user, isLoggedIn, logout } = useAuth();
 
   const username = user?.username;
-  const role = user?.role; // ✅ single role now
+  const role = user?.role;
 
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef();
@@ -47,9 +47,7 @@ function Header() {
             alt="Logo"
             className="w-20 p-1"
           />
-          <h3 style={{ color: "#D3DAD9", margin: 0 }}>
-            Personal Podcast
-          </h3>
+          <h3 style={{ color: "#D3DAD9", margin: 0 }}>Personal Podcast</h3>
         </Link>
       </div>
 
@@ -58,13 +56,22 @@ function Header() {
         <NavLink to="/" className="text-decoration-none nav-link-custom">
           Home
         </NavLink>
-        <NavLink to="/episodes" className="text-decoration-none nav-link-custom">
+        <NavLink
+          to="/episodes"
+          className="text-decoration-none nav-link-custom"
+        >
           Episodes
         </NavLink>
-        <NavLink to="/publishers" className="text-decoration-none nav-link-custom">
+        <NavLink
+          to="/publishers"
+          className="text-decoration-none nav-link-custom"
+        >
           Publishers
         </NavLink>
-        <NavLink to="/categories" className="text-decoration-none nav-link-custom">
+        <NavLink
+          to="/categories"
+          className="text-decoration-none nav-link-custom"
+        >
           Categories
         </NavLink>
       </div>
@@ -100,9 +107,17 @@ function Header() {
                   User Panel
                 </Link>
 
+                <Link
+                  to="/my-episodes"
+                  className="user-dropdown-item"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  My Episodes
+                </Link>
+
                 {role === "Publisher" && (
                   <Link
-                    to="/publisher-dashboard"
+                    to="/publisher"
                     className="user-dropdown-item"
                     onClick={() => setShowDropdown(false)}
                   >
@@ -134,10 +149,7 @@ function Header() {
           </div>
         ) : (
           <>
-            <Link
-              to="/login"
-              className="btn btn-login-custom btn-sm px-4 py-2"
-            >
+            <Link to="/login" className="btn btn-login-custom btn-sm px-4 py-2">
               Login
             </Link>
             <Link

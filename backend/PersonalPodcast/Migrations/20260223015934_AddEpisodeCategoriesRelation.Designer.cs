@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PersonalPodcast.Data;
 
@@ -11,9 +12,11 @@ using PersonalPodcast.Data;
 namespace PersonalPodcast.Migrations
 {
     [DbContext(typeof(PodcastDbContext))]
-    partial class PodcastDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260223015934_AddEpisodeCategoriesRelation")]
+    partial class AddEpisodeCategoriesRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,9 +75,6 @@ namespace PersonalPodcast.Migrations
                     b.Property<DateTime?>("PublishedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("PublisherId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("Season")
                         .HasColumnType("int");
 
@@ -83,8 +83,6 @@ namespace PersonalPodcast.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PublisherId");
 
                     b.ToTable("Episodes");
                 });
@@ -102,35 +100,6 @@ namespace PersonalPodcast.Migrations
                     b.HasIndex("CategoryId");
 
                     b.ToTable("EpisodeCategories");
-                });
-
-            modelBuilder.Entity("PersonalPodcast.Models.Order", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<int>("EpisodeId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EpisodeId");
-
-                    b.HasIndex("UserId", "EpisodeId")
-                        .IsUnique();
-
-                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("PersonalPodcast.Models.User", b =>
@@ -206,16 +175,6 @@ namespace PersonalPodcast.Migrations
                         });
                 });
 
-            modelBuilder.Entity("PersonalPodcast.Models.Episode", b =>
-                {
-                    b.HasOne("PersonalPodcast.Models.User", "Publisher")
-                        .WithMany()
-                        .HasForeignKey("PublisherId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Publisher");
-                });
-
             modelBuilder.Entity("PersonalPodcast.Models.EpisodeCategory", b =>
                 {
                     b.HasOne("PersonalPodcast.Models.Category", "Category")
@@ -233,25 +192,6 @@ namespace PersonalPodcast.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Episode");
-                });
-
-            modelBuilder.Entity("PersonalPodcast.Models.Order", b =>
-                {
-                    b.HasOne("PersonalPodcast.Models.Episode", "Episode")
-                        .WithMany()
-                        .HasForeignKey("EpisodeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PersonalPodcast.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Episode");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PersonalPodcast.Models.Category", b =>

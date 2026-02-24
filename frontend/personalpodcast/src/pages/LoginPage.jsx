@@ -40,9 +40,13 @@ function LoginPage() {
 
       if (data.success) {
   const user = login(data.accessToken);
-
-  if (user?.role === "Admin") navigate("/admin");
-  else navigate("/");
+if (user?.role === "Admin") {
+  navigate("/admin");
+} else if (user?.role === "Publisher") {
+  navigate("/publisher");
+} else {
+  navigate("/");
+}
 
 } else {
   setError(data.message || "Login failed");

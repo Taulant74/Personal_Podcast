@@ -24,6 +24,21 @@ namespace PersonalPodcast.Controllers
             _db = db;
         }
 
+        private static readonly HashSet<string> AllowedRoles =
+    new(StringComparer.OrdinalIgnoreCase) { "User", "Publisher", "Admin" };
+
+        private static string NormalizeRoleOrThrow(string? role, string fallback)
+        {
+            var r = (role ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(r)) return fallback;
+
+            if (!AllowedRoles.Contains(r))
+                throw new ArgumentException("Invalid role. Allowed roles: User, Publisher, Admin.");
+
+            // normalize casing so DB is consistent
+            r = r.ToLowerInvariant();
+            return char.ToUpperInvariant(r[0]) + r.Substring(1);
+        }
 
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers()
@@ -66,12 +81,22 @@ namespace PersonalPodcast.Controllers
         [HttpPost("users")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDto request)
         {
+            string role;
+            try
+            {
+                role = NormalizeRoleOrThrow(request.Role, "User");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+
             var (ok, error, user) = await _UserCreateService.CreateUserAsync(
                 request.Username,
                 request.FirstName,
                 request.LastName,
                 request.Password,
-                request.Role,
+                role,          // ✅ use validated role
                 request.Age,
                 request.Email
             );
@@ -111,7 +136,14 @@ namespace PersonalPodcast.Controllers
             user.LastName = request.LastName.Trim();
             user.Age = request.Age;
             user.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
-            user.Role = string.IsNullOrWhiteSpace(request.Role) ? user.Role : request.Role.Trim();
+            try
+            {
+                user.Role = NormalizeRoleOrThrow(request.Role, user.Role);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
 
             if (!string.IsNullOrWhiteSpace(request.Password))
             {
