@@ -6,14 +6,12 @@ using PersonalPodcast.Data;
 using PersonalPodcast.Models;
 using PersonalPodcast.Services;
 using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace PersonalPodcast.Controllers;
 
 [ApiController]
 [Route("api/publisher")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Publisher,Admin")]
-
 public class PublisherController : ControllerBase
 {
     private readonly PodcastDbContext _db;
@@ -27,16 +25,39 @@ public class PublisherController : ControllerBase
 
     private int? GetUserId()
     {
-        var idStr =
-            User.FindFirstValue(ClaimTypes.Sid)             
-            ?? User.FindFirstValue("sid")                   
-            ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub)
-            ?? User.FindFirstValue("sub");
-
+        var idStr = User.FindFirstValue(ClaimTypes.Sid)
+                  ?? User.FindFirstValue("sid")
+                  ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+                  ?? User.FindFirstValue("sub");
         return int.TryParse(idStr, out var id) ? id : null;
     }
+
     private bool IsAdmin() => User.IsInRole("Admin");
+
+    private static List<int> ParseCategoryIds(string? csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv)) return new();
+        return csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => int.TryParse(s, out var id) ? id : (int?)null)
+            .Where(id => id.HasValue && id.Value > 0)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+    }
+
+    private async Task ValidateCategoryIdsOrThrow(List<int> ids)
+    {
+        if (ids.Count == 0) return;
+
+        var existing = await _db.Categories
+            .Where(c => ids.Contains(c.Id))
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        var missing = ids.Except(existing).ToList();
+        if (missing.Count > 0)
+            throw new ArgumentException($"Invalid category id(s): {string.Join(", ", missing)}");
+    }
 
     [HttpGet("episodes")]
     public async Task<IActionResult> MyEpisodes()
@@ -50,47 +71,46 @@ public class PublisherController : ControllerBase
             q = q.Where(e => e.PublisherId == userId);
 
         var items = await q
+            .Include(e => e.EpisodeCategories)
+                .ThenInclude(ec => ec.Category)
             .OrderByDescending(e => e.CreatedAt)
-            .Select(e => new {
-                e.Id,
-                e.Title,
-                e.Description,
-                e.AudioUrl,
-                e.DurationSeconds,
-                e.Season,
-                e.IsPublished,
-                e.PublishedDate,
-                e.PlayCount,
-                e.CreatedAt,
-                e.PublisherId
+            .Select(e => new
+            {
+                id = e.Id,
+                title = e.Title,
+                description = e.Description,
+                audioUrl = e.AudioUrl,
+                durationSeconds = e.DurationSeconds,
+                season = e.Season,
+                isPublished = e.IsPublished,
+                publishedDate = e.PublishedDate,
+                playCount = e.PlayCount,
+                createdAt = e.CreatedAt,
+                publisherId = e.PublisherId,
+
+                // ✅ for table
+                categories = e.EpisodeCategories
+                    .Where(ec => ec.Category != null)
+                    .Select(ec => ec.Category!.Name)
+                    .Distinct()
+                    .ToList(),
+
+                // ✅ for edit checkbox preload
+                categoryIds = e.EpisodeCategories
+                    .Select(ec => ec.CategoryId)
+                    .Distinct()
+                    .ToList()
             })
             .ToListAsync();
 
         return Ok(items);
-    }
-    [HttpDelete("episodes/{id:int}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var userId = GetUserId();
-        if (userId == null) return Unauthorized();
-
-        var episode = await _db.Episodes.FirstOrDefaultAsync(e => e.Id == id);
-        if (episode == null) return NotFound("Episode not found.");
-
-        // ownership check (publishers only)
-        if (!IsAdmin() && episode.PublisherId != userId)
-            return Forbid();
-
-        _db.Episodes.Remove(episode);
-        await _db.SaveChangesAsync();
-
-        return NoContent(); // 204
     }
 
     [HttpPost("episodes")]
     public async Task<IActionResult> Upload(
         [FromForm] string title,
         [FromForm] string? description,
+        [FromForm] string? categoryIds,
         [FromForm] int? season,
         [FromForm] bool isPublished,
         [FromForm] IFormFile file)
@@ -100,6 +120,10 @@ public class PublisherController : ControllerBase
 
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
+
+        var ids = ParseCategoryIds(categoryIds);
+        try { await ValidateCategoryIdsOrThrow(ids); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
 
         var (audioUrl, durationSeconds) = await _cloudinary.UploadAudioAsync(file);
 
@@ -114,19 +138,58 @@ public class PublisherController : ControllerBase
             PublishedDate = isPublished ? DateTime.UtcNow : null,
             PlayCount = 0,
             CreatedAt = DateTime.UtcNow,
-            PublisherId = userId // ownership of the episode
+            PublisherId = userId
         };
 
         _db.Episodes.Add(episode);
         await _db.SaveChangesAsync();
 
-        return Ok(new { episode.Id, episode.Title, episode.IsPublished, episode.PublisherId });
-    }
+        if (ids.Count > 0)
+        {
+            foreach (var cid in ids)
+            {
+                _db.Set<EpisodeCategory>().Add(new EpisodeCategory
+                {
+                    EpisodeId = episode.Id,
+                    CategoryId = cid
+                });
+            }
+            await _db.SaveChangesAsync();
+        }
 
+        return Ok(new { episode.Id });
+    }
+    [HttpDelete("episodes/{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var episode = await _db.Episodes
+            .Include(e => e.EpisodeCategories) // remove if you don't have categories relation
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (episode == null) return NotFound("Episode not found.");
+
+        // ownership check (publishers only)
+        if (!IsAdmin() && episode.PublisherId != userId)
+            return Forbid();
+
+        // if you have join table and cascade isn't configured
+        if (episode.EpisodeCategories != null && episode.EpisodeCategories.Count > 0)
+            _db.Set<EpisodeCategory>().RemoveRange(episode.EpisodeCategories);
+
+        _db.Episodes.Remove(episode);
+        await _db.SaveChangesAsync();
+
+        return NoContent(); // 204
+    }
     [HttpPut("episodes/{id:int}")]
-    public async Task<IActionResult> Update(int id,
+    public async Task<IActionResult> Update(
+        int id,
         [FromForm] string title,
         [FromForm] string? description,
+        [FromForm] string? categoryIds,
         [FromForm] int? season,
         [FromForm] bool isPublished,
         [FromForm] IFormFile? file)
@@ -134,12 +197,16 @@ public class PublisherController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var episode = await _db.Episodes.FirstOrDefaultAsync(e => e.Id == id);
+        var episode = await _db.Episodes
+            .Include(e => e.EpisodeCategories)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
         if (episode == null) return NotFound("Episode not found.");
 
-        // ownership check (publishers only)
         if (!IsAdmin() && episode.PublisherId != userId)
             return Forbid();
+
+        if (string.IsNullOrWhiteSpace(title)) return BadRequest("Title is required.");
 
         episode.Title = title.Trim();
         episode.Description = description;
@@ -163,7 +230,29 @@ public class PublisherController : ControllerBase
             episode.DurationSeconds = Math.Max(newDur, 1);
         }
 
+        if (categoryIds != null)
+        {
+            var ids = ParseCategoryIds(categoryIds);
+            try { await ValidateCategoryIdsOrThrow(ids); }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+
+            if (episode.EpisodeCategories != null && episode.EpisodeCategories.Count > 0)
+                _db.Set<EpisodeCategory>().RemoveRange(episode.EpisodeCategories);
+
+            if (ids.Count > 0)
+            {
+                foreach (var cid in ids)
+                {
+                    _db.Set<EpisodeCategory>().Add(new EpisodeCategory
+                    {
+                        EpisodeId = episode.Id,
+                        CategoryId = cid
+                    });
+                }
+            }
+        }
+
         await _db.SaveChangesAsync();
-        return Ok(new { episode.Id, episode.IsPublished });
+        return Ok(new { episode.Id });
     }
 }

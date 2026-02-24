@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 const API_BASE = "https://localhost:7261";
 const PUB_URL = `${API_BASE}/api/publisher`;
 const PUB_EPISODES_URL = `${PUB_URL}/episodes`;
+const CATEGORIES_URL = `${API_BASE}/api/categories`;
 
 const emptyCreateEpisode = {
   title: "",
@@ -43,18 +44,45 @@ export default function PublisherDashboard() {
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [categories, setCategories] = useState([]);
+const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);       
+const [editSelectedCategoryIds, setEditSelectedCategoryIds] = useState([]); 
 
   const getToken = () => localStorage.getItem("accessToken");
   const authHeaders = (extra = {}) => {
     const t = getToken();
     return t ? { ...extra, Authorization: `Bearer ${t}` } : extra;
   };
+  
+function getEpisodeCategoryLabels(e) {
+
+  if (Array.isArray(e?.categories) && e.categories.length) {
+    if (typeof e.categories[0] === "string") return e.categories;
+  }
+  return [];
+}
+
 
   async function fetchJsonOrTextError(res) {
     if (res.ok) return { ok: true, data: await res.json().catch(() => null) };
     const txt = await res.text().catch(() => "");
     return { ok: false, error: txt || `Request failed (${res.status})` };
   }
+  async function loadCategories() {
+  try {
+    const res = await fetch(CATEGORIES_URL, { method: "GET", headers: { ...authHeaders() } });
+    const out = await fetchJsonOrTextError(res);
+    if (!out.ok) throw new Error(out.error);
+    setCategories(Array.isArray(out.data) ? out.data : []);
+  } catch {
+    // ignore
+  }
+}
+
+useEffect(() => {
+  loadEpisodes();
+  loadCategories();
+}, []);
 
   function resetMessages() {
     setErrorMsg("");
@@ -79,9 +107,6 @@ export default function PublisherDashboard() {
     }
   }
 
-  useEffect(() => {
-    loadEpisodes();
-  }, []);
 
   function openCreate() {
     resetMessages();
@@ -89,29 +114,44 @@ export default function PublisherDashboard() {
     setShowCreate(true);
   }
 
-  function openEdit(ep) {
-    resetMessages();
-    setEditId(ep.id);
-    setEditForm({
-      title: ep.title || "",
-      description: ep.description || "",
-      season: ep.season == null ? "" : String(ep.season),
-      isPublished: !!ep.isPublished,
-      file: null,
-    });
-    setShowEdit(true);
-  }
+ function openEdit(ep) {
+  resetMessages();
+  setEditId(ep.id);
 
-  function buildFormData(form, requireFile) {
-    const fd = new FormData();
-    fd.append("title", form.title ?? "");
-    fd.append("description", form.description ?? "");
-    if (form.season !== "" && form.season != null) fd.append("season", String(form.season));
-    fd.append("isPublished", String(!!form.isPublished));
-    if (form.file) fd.append("file", form.file);
-    else if (requireFile) throw new Error("Audio file is required.");
-    return fd;
-  }
+  const ids =
+    Array.isArray(ep.categoryIds) ? ep.categoryIds :
+    Array.isArray(ep.categoryIDs) ? ep.categoryIDs :
+    Array.isArray(ep.categoriesIds) ? ep.categoriesIds :
+    [];
+
+  setEditSelectedCategoryIds(ids);
+
+  setEditForm({
+    title: ep.title || "",
+    description: ep.description || "",
+    season: ep.season == null ? "" : String(ep.season),
+    isPublished: !!ep.isPublished,
+    file: null,
+  });
+
+  setShowEdit(true);
+}
+
+ function buildFormData(form, requireFile, categoryIds) {
+  const fd = new FormData();
+  fd.append("title", form.title ?? "");
+  fd.append("description", form.description ?? "");
+
+  fd.append("categoryIds", (categoryIds ?? []).join(",")); 
+
+  if (form.season !== "" && form.season != null) fd.append("season", String(form.season));
+  fd.append("isPublished", String(!!form.isPublished));
+
+  if (form.file) fd.append("file", form.file);
+  else if (requireFile) throw new Error("Audio file is required.");
+
+  return fd;
+}
 
   async function handleCreateSubmit(e) {
     e.preventDefault();
@@ -120,7 +160,7 @@ export default function PublisherDashboard() {
       if (!createForm.title.trim()) throw new Error("Title is required.");
       if (!createForm.file) throw new Error("Audio file is required.");
 
-      const fd = buildFormData(createForm, true);
+      const fd = buildFormData(createForm, true, selectedCategoryIds);
 
       const res = await fetch(PUB_EPISODES_URL, {
         method: "POST",
@@ -167,7 +207,7 @@ export default function PublisherDashboard() {
       if (!editId) throw new Error("Missing episode id.");
       if (!editForm.title.trim()) throw new Error("Title is required.");
 
-      const fd = buildFormData(editForm, false);
+     const fd = buildFormData(editForm, false, editSelectedCategoryIds);
 
       const res = await fetch(`${PUB_EPISODES_URL}/${editId}`, {
         method: "PUT",
@@ -269,6 +309,7 @@ export default function PublisherDashboard() {
             </div>
           </div>
         </div>
+      
         <div className="col-12 col-md-3">
           <div className="card shadow-sm h-100">
             <div className="card-body">
@@ -323,6 +364,7 @@ export default function PublisherDashboard() {
                 <th>Episode</th>
                 <th style={{ width: 120 }}>Status</th>
                 <th style={{ width: 90 }}>Season</th>
+                <th style={{ width: 180 }}>Category</th>
                 <th style={{ width: 120 }}>Duration</th>
                 <th style={{ width: 170 }}>Published</th>
                 <th style={{ width: 90 }}>Plays</th>
@@ -333,73 +375,80 @@ export default function PublisherDashboard() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-muted py-4">Loading...</td>
+                  <td colSpan={9} className="text-center text-muted py-4">Loading...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-muted py-4">No episodes found.</td>
+                  <td colSpan={9} className="text-center text-muted py-4">No episodes found.</td>
                 </tr>
               ) : (
                 filtered.map((e) => (
-                  <tr key={e.id}>
-                    <td className="text-muted">{e.id}</td>
+                <tr key={e.id}>
+  <td className="text-muted">{e.id}</td>
 
-                    <td>
-                      <div className="d-flex flex-column gap-2">
-                        <div>
-                          <div className="fw-semibold">{e.title}</div>
-                          <div className="small text-muted text-truncate" style={{ maxWidth: 720 }}>
-                            {e.description || "—"}
-                          </div>
-                        </div>
+  <td>
+    <div className="d-flex flex-column gap-2">
+      <div>
+        <div className="fw-semibold">{e.title}</div>
+        <div className="small text-muted text-truncate" style={{ maxWidth: 720 }}>
+          {e.description || "—"}
+        </div>
+      </div>
 
-                        {e.audioUrl ? (
-                          <audio className="w-100" controls preload="none" src={e.audioUrl} />
-                        ) : null}
-                      </div>
-                    </td>
+      {e.audioUrl ? <audio className="w-100" controls preload="none" src={e.audioUrl} /> : null}
+    </div>
+  </td>
 
-                    <td>
-                      {e.isPublished ? (
-                        <span className="badge text-bg-success">Published</span>
-                      ) : (
-                        <span className="badge text-bg-secondary">Draft</span>
-                      )}
-                    </td>
+  {/* Status */}
+  <td>
+    {e.isPublished ? (
+      <span className="badge text-bg-success">Published</span>
+    ) : (
+      <span className="badge text-bg-secondary">Draft</span>
+    )}
+  </td>
 
-                    <td>{e.season ?? "—"}</td>
-                    <td>{secondsToMinSec(e.durationSeconds)}</td>
-                    <td>{formatDate(e.publishedDate)}</td>
-                    <td>{e.playCount ?? 0}</td>
+  {/* Season */}
+  <td>{e.season ?? "—"}</td>
 
-                    <td className="text-end">
-                      <button
-                        className="btn btn-sm btn-outline-primary me-2"
-                        onClick={() => openEdit(e)}
-                      >
-                        Edit
-                      </button>
+  {/* Category */}
+  <td>
+    {(() => {
+      const labels = getEpisodeCategoryLabels(e);
+      return labels.length ? labels.join(", ") : "—";
+    })()}
+  </td>
 
-                      {e.isPublished ? (
-                        <button
-                          className="btn btn-sm btn-outline-warning me-2"
-                          onClick={() => setPublishState(e, false)}
-                        >
-                          Unpublish
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-sm btn-outline-success me-2"
-                          onClick={() => setPublishState(e, true)}
-                        >
-                          Publish
-                        </button>
-                      )}
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(e)}>
-                             Delete
-                      </button>
-                    </td>
-                  </tr>
+  {/* Duration */}
+  <td>{secondsToMinSec(e.durationSeconds)}</td>
+
+  {/* Published date */}
+  <td>{formatDate(e.publishedDate)}</td>
+
+  {/* Plays */}
+  <td>{e.playCount ?? 0}</td>
+
+  {/* Actions */}
+  <td className="text-end">
+    <button className="btn btn-sm btn-outline-primary me-2" onClick={() => openEdit(e)}>
+      Edit
+    </button>
+
+    {e.isPublished ? (
+      <button className="btn btn-sm btn-outline-warning me-2" onClick={() => setPublishState(e, false)}>
+        Unpublish
+      </button>
+    ) : (
+      <button className="btn btn-sm btn-outline-success me-2" onClick={() => setPublishState(e, true)}>
+        Publish
+      </button>
+    )}
+
+    <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(e)}>
+      Delete
+    </button>
+  </td>
+</tr>
                 ))
               )}
             </tbody>
@@ -411,13 +460,16 @@ export default function PublisherDashboard() {
       {/* Create modal */}
       {showCreate ? (
         <Modal title="Create Episode" onClose={() => setShowCreate(false)}>
-          <EpisodeForm
-            form={createForm}
-            setForm={setCreateForm}
-            onSubmit={handleCreateSubmit}
-            submitLabel="Create"
-            requireFile
-          />
+         <EpisodeForm
+  form={createForm}
+  setForm={setCreateForm}
+  onSubmit={handleCreateSubmit}
+  submitLabel="Create"
+  requireFile
+  categories={categories}
+  selectedIds={selectedCategoryIds}
+  setSelectedIds={setSelectedCategoryIds}
+/>
         </Modal>
       ) : null}
 
@@ -427,13 +479,16 @@ export default function PublisherDashboard() {
           title={`Edit Episode #${editId}`}
           onClose={() => { setShowEdit(false); setEditId(null); }}
         >
-          <EpisodeForm
-            form={editForm}
-            setForm={setEditForm}
-            onSubmit={handleEditSubmit}
-            submitLabel="Save changes"
-            requireFile={false}
-          />
+         <EpisodeForm
+  form={editForm}
+  setForm={setEditForm}
+  onSubmit={handleEditSubmit}
+  submitLabel="Save changes"
+  requireFile={false}
+  categories={categories}
+  selectedIds={editSelectedCategoryIds}
+  setSelectedIds={setEditSelectedCategoryIds}
+/>
           <div className="alert alert-info mt-3 mb-0">
             Uploading a new file will replace the current <code>AudioUrl</code>.
           </div>
@@ -443,7 +498,7 @@ export default function PublisherDashboard() {
   );
 }
 
-function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile }) {
+function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile, categories, selectedIds, setSelectedIds })  {
   return (
     <form onSubmit={onSubmit}>
       <div className="row g-3">
@@ -465,6 +520,35 @@ function EpisodeForm({ form, setForm, onSubmit, submitLabel, requireFile }) {
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
           />
         </div>
+        <div className="col-12">
+  <label className="form-label">Categories</label>
+
+  <div className="d-flex flex-wrap gap-2">
+    {categories?.length ? (
+      categories.map((c) => (
+        <label
+          key={c.id}
+          className="badge text-bg-light d-inline-flex align-items-center gap-2 px-3 py-2"
+          style={{ cursor: "pointer", border: "1px solid rgba(0,0,0,.08)" }}
+        >
+          <input
+            className="form-check-input m-0"
+            type="checkbox"
+            checked={selectedIds?.includes(c.id)}
+            onChange={() =>
+              setSelectedIds((prev) =>
+                prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id]
+              )
+            }
+          />
+          <span className="fw-semibold">{c.name}</span>
+        </label>
+      ))
+    ) : (
+      <div className="text-muted small">No categories available.</div>
+    )}
+  </div>
+</div>
 
         <div className="col-md-6">
           <label className="form-label">Season (optional)</label>
