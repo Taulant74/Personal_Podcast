@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from '../components/LoadingSpinner';
-
+import { apiUrl } from "../config/api";
 function UserPanelPage() {
   const { user: authUser, authFetch, loading: authLoading } = useAuth();
 
@@ -22,9 +22,7 @@ function UserPanelPage() {
       setLoading(true);
 
       try {
-        const response = await authFetch(
-          `https://localhost:7261/api/user/${authUser.id}`
-        );
+          const response = await authFetch(apiUrl(`/api/user/${authUser.id}`));
 
         if (!response.ok) {
           throw new Error("Failed to fetch user");
@@ -80,8 +78,7 @@ function UserPanelPage() {
         Password: editingField === "password" ? tempValue : null,
       };
 
-      const response = await authFetch(
-        `https://localhost:7261/api/user/${userId}`,
+        const response = await authFetch(apiUrl(`/api/user/${userId}`),
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

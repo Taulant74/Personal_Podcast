@@ -107,35 +107,30 @@ public class PublisherController : ControllerBase
     }
 
     [HttpPost("episodes")]
-    public async Task<IActionResult> Upload(
-        [FromForm] string title,
-        [FromForm] string? description,
-        [FromForm] string? categoryIds,
-        [FromForm] int? season,
-        [FromForm] bool isPublished,
-        [FromForm] IFormFile file)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Upload([FromForm] UploadEpisodeRequest request)
     {
-        if (string.IsNullOrWhiteSpace(title)) return BadRequest("Title is required.");
-        if (file == null || file.Length == 0) return BadRequest("Audio file is required.");
+        if (string.IsNullOrWhiteSpace(request.title)) return BadRequest("Title is required.");
+        if (request.file == null || request.file.Length == 0) return BadRequest("Audio file is required.");
 
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var ids = ParseCategoryIds(categoryIds);
+        var ids = ParseCategoryIds(request.categoryIds);
         try { await ValidateCategoryIdsOrThrow(ids); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
 
-        var (audioUrl, durationSeconds) = await _cloudinary.UploadAudioAsync(file);
+        var (audioUrl, durationSeconds) = await _cloudinary.UploadAudioAsync(request.file);
 
         var episode = new Episode
         {
-            Title = title.Trim(),
-            Description = description,
+            Title = request.title.Trim(),
+            Description = request.description,
             AudioUrl = audioUrl,
             DurationSeconds = Math.Max(durationSeconds, 1),
-            Season = season,
-            IsPublished = isPublished,
-            PublishedDate = isPublished ? DateTime.UtcNow : null,
+            Season = request.season,
+            IsPublished = request.isPublished,
+            PublishedDate = request.isPublished ? DateTime.UtcNow : null,
             PlayCount = 0,
             CreatedAt = DateTime.UtcNow,
             PublisherId = userId
@@ -159,6 +154,7 @@ public class PublisherController : ControllerBase
 
         return Ok(new { episode.Id });
     }
+
     [HttpDelete("episodes/{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -184,15 +180,10 @@ public class PublisherController : ControllerBase
 
         return NoContent(); // 204
     }
+
     [HttpPut("episodes/{id:int}")]
-    public async Task<IActionResult> Update(
-        int id,
-        [FromForm] string title,
-        [FromForm] string? description,
-        [FromForm] string? categoryIds,
-        [FromForm] int? season,
-        [FromForm] bool isPublished,
-        [FromForm] IFormFile? file)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Update(int id, [FromForm] UpdateEpisodeRequest request)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
@@ -206,13 +197,13 @@ public class PublisherController : ControllerBase
         if (!IsAdmin() && episode.PublisherId != userId)
             return Forbid();
 
-        if (string.IsNullOrWhiteSpace(title)) return BadRequest("Title is required.");
+        if (string.IsNullOrWhiteSpace(request.title)) return BadRequest("Title is required.");
 
-        episode.Title = title.Trim();
-        episode.Description = description;
-        episode.Season = season;
+        episode.Title = request.title.Trim();
+        episode.Description = request.description;
+        episode.Season = request.season;
 
-        if (!isPublished)
+        if (!request.isPublished)
         {
             episode.IsPublished = false;
             episode.PublishedDate = null;
@@ -223,16 +214,16 @@ public class PublisherController : ControllerBase
             episode.IsPublished = true;
         }
 
-        if (file != null && file.Length > 0)
+        if (request.file != null && request.file.Length > 0)
         {
-            var (newUrl, newDur) = await _cloudinary.UploadAudioAsync(file);
+            var (newUrl, newDur) = await _cloudinary.UploadAudioAsync(request.file);
             episode.AudioUrl = newUrl;
             episode.DurationSeconds = Math.Max(newDur, 1);
         }
 
-        if (categoryIds != null)
+        if (request.categoryIds != null)
         {
-            var ids = ParseCategoryIds(categoryIds);
+            var ids = ParseCategoryIds(request.categoryIds);
             try { await ValidateCategoryIdsOrThrow(ids); }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
 
@@ -254,5 +245,25 @@ public class PublisherController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new { episode.Id });
+    }
+
+    public class UploadEpisodeRequest
+    {
+        public string title { get; set; } = default!;
+        public string? description { get; set; }
+        public string? categoryIds { get; set; }
+        public int? season { get; set; }
+        public bool isPublished { get; set; }
+        public IFormFile file { get; set; } = default!;
+    }
+
+    public class UpdateEpisodeRequest
+    {
+        public string title { get; set; } = default!;
+        public string? description { get; set; }
+        public string? categoryIds { get; set; }
+        public int? season { get; set; }
+        public bool isPublished { get; set; }
+        public IFormFile? file { get; set; }
     }
 }

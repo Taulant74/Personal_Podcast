@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { API_BASE as BASE } from "../config/api";
 
-const API_BASE = "https://localhost:7261";
+const API_BASE = BASE;
 const ADMIN_URL = `${API_BASE}/api/Admin`;
 const ADMIN_EPISODES_URL = `${ADMIN_URL}/episodes`;
 const ADMIN_USERS_URL = `${ADMIN_URL}/users`;

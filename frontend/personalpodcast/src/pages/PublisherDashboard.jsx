@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { API_BASE as BASE } from "../config/api";
 
-const API_BASE = "https://localhost:7261";
+const API_BASE = BASE;
 const PUB_URL = `${API_BASE}/api/publisher`;
 const PUB_EPISODES_URL = `${PUB_URL}/episodes`;
 const CATEGORIES_URL = `${API_BASE}/api/categories`;
