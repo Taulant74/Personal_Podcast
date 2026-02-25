@@ -49,22 +49,47 @@ namespace PersonalPodcast.Controllers
                 .AsNoTracking()
                 .Where(e => e.IsPublished);
 
+            if (!string.IsNullOrWhiteSpace(request.Title))
+            {
+                var title = request.Title.Trim();
+                query = query.Where(e => EF.Functions.Like(e.Title, $"%{title}%"));
+            }
+
+            if (request.CategoryId is not null)
+            {
+                var catId = request.CategoryId.Value;
+                query = query.Where(e => e.EpisodeCategories.Any(ec => ec.CategoryId == catId));
+            }
+
             if (!string.IsNullOrWhiteSpace(request.Q))
             {
                 var term = request.Q.Trim();
 
                 query = query.Where(e =>
                     EF.Functions.Like(e.Title, $"%{term}%") ||
-                    (e.Description != null && EF.Functions.Like(e.Description, $"%{term}%")) ||
-                    e.EpisodeCategories.Any(ec =>
-                        ec.Category != null && EF.Functions.Like(ec.Category.Name, $"%{term}%"))
+                    (e.Publisher != null && (
+                        EF.Functions.Like(e.Publisher.Username, $"%{term}%") ||
+                        EF.Functions.Like(e.Publisher.FirstName, $"%{term}%")
+                    ))
                 );
             }
 
             var total = await query.CountAsync();
 
+            var sortBy = (request.SortBy ?? "date").ToLowerInvariant();
+            var sortDir = (request.SortDir ?? "desc").ToLowerInvariant();
+            var asc = sortDir == "asc";
+
+            query = sortBy switch
+            {
+                "title" => asc ? query.OrderBy(e => e.Title) : query.OrderByDescending(e => e.Title),
+                "playcount" => asc ? query.OrderBy(e => e.PlayCount) : query.OrderByDescending(e => e.PlayCount),
+                _ => asc
+                    ? query.OrderBy(e => e.PublishedDate ?? e.CreatedAt)
+                    : query.OrderByDescending(e => e.PublishedDate ?? e.CreatedAt)
+            };
+
             var raw = await query
-                .OrderByDescending(e => e.PublishedDate ?? e.CreatedAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(e => new
@@ -79,6 +104,7 @@ namespace PersonalPodcast.Controllers
                     Categories = e.EpisodeCategories
                         .Where(ec => ec.Category != null)
                         .Select(ec => ec.Category!.Name)
+                        .Distinct()
                 })
                 .ToListAsync();
 
