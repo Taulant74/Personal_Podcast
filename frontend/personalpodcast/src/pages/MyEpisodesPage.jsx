@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-
+import { API_BASE, apiUrl } from "../config/api";
 export default function MyEpisodesPage() {
   const api = useMemo(() => {
     return axios.create({
-      baseURL: "https://localhost:7261",
+      baseURL: API_BASE || undefined
     });
   }, []);
 
@@ -39,7 +39,7 @@ export default function MyEpisodesPage() {
         setMsg("Loading your episodes...");
 
         // ✅ CHANGE THIS URL if your backend route is different
-        const res = await authFetch("https://localhost:7261/api/orders/my-episodes", {
+          const res = await authFetch(apiUrl("/api/orders/my-episodes"), {
           method: "GET",
         });
 

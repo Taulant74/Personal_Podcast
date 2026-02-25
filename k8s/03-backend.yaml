@@ -3,8 +3,11 @@ kind: Deployment
 metadata:
   name: personalpodcast-backend
   namespace: personalpodcast
+  labels:
+    app: personalpodcast-backend
 spec:
-  replicas: 2
+  replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: personalpodcast-backend
@@ -13,20 +16,20 @@ spec:
       labels:
         app: personalpodcast-backend
     spec:
+      terminationGracePeriodSeconds: 20
       containers:
         - name: api
-          image: personalpodcast-backend:dev   # ose YOUR_REGISTRY/... kur kalojme registry
+          image: personalpodcast.azurecr.io/personalpodcast-backend:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
 
           env:
             - name: ASPNETCORE_ENVIRONMENT
-              value: "Development"
+              value: "Production"
             - name: ASPNETCORE_URLS
               value: "http://+:8080"
 
-          # merr automatikisht ConnectionStrings__PersonalPodcastDatabase, CLOUDINARY etj
           envFrom:
             - secretRef:
                 name: personalpodcast-secrets
@@ -70,6 +73,6 @@ spec:
     app: personalpodcast-backend
   ports:
     - name: http
-      port: 8080
+      port: 80
       targetPort: 8080
   type: ClusterIP

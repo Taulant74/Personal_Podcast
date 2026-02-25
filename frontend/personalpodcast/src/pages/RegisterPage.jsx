@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
+import { apiUrl } from "../config/api";
 function RegisterPage() {
   const [formData, setFormData] = useState({
     username: '',
@@ -34,7 +34,7 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://localhost:7261/api/auth/register', {
+        const response = await fetch(apiUrl('/api/auth/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

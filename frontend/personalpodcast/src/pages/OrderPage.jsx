@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-
+import { API_BASE, apiUrl } from "../config/api";
 export default function OrderPage() {
   const { episodeId } = useParams();
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ export default function OrderPage() {
 
   const api = useMemo(() => {
     return axios.create({
-      baseURL: "https://localhost:7261",
+      baseURL: API_BASE || undefined
     });
   }, []);
 
@@ -41,7 +41,7 @@ export default function OrderPage() {
     try {
       setLoading(true);
 
-      const res = await authFetch("https://localhost:7261/api/orders", {
+        const res = await authFetch(apiUrl("/api/orders"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ episodeId: id }),

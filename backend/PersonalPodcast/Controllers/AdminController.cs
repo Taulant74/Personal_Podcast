@@ -25,7 +25,7 @@ namespace PersonalPodcast.Controllers
         }
 
         private static readonly HashSet<string> AllowedRoles =
-    new(StringComparer.OrdinalIgnoreCase) { "User", "Publisher", "Admin" };
+            new(StringComparer.OrdinalIgnoreCase) { "User", "Publisher", "Admin" };
 
         private static string NormalizeRoleOrThrow(string? role, string fallback)
         {
@@ -35,7 +35,6 @@ namespace PersonalPodcast.Controllers
             if (!AllowedRoles.Contains(r))
                 throw new ArgumentException("Invalid role. Allowed roles: User, Publisher, Admin.");
 
-            // normalize casing so DB is consistent
             r = r.ToLowerInvariant();
             return char.ToUpperInvariant(r[0]) + r.Substring(1);
         }
@@ -96,7 +95,7 @@ namespace PersonalPodcast.Controllers
                 request.FirstName,
                 request.LastName,
                 request.Password,
-                role,          // ✅ use validated role
+                role,
                 request.Age,
                 request.Email
             );
@@ -136,6 +135,7 @@ namespace PersonalPodcast.Controllers
             user.LastName = request.LastName.Trim();
             user.Age = request.Age;
             user.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+
             try
             {
                 user.Role = NormalizeRoleOrThrow(request.Role, user.Role);
@@ -257,22 +257,20 @@ namespace PersonalPodcast.Controllers
             return Ok(episodes);
         }
 
+        // -----------------------------
+        // FIXED FOR SWAGGER (multipart)
+        // -----------------------------
         [HttpPost("episodes")]
-        public async Task<IActionResult> Upload(
-            [FromForm] string title,
-            [FromForm] string? description,
-            [FromForm] string? categoryIds,
-            [FromForm] int? season,
-            [FromForm] bool isPublished,
-            [FromForm] IFormFile file)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Upload([FromForm] CreateEpisodeFormRequest request)
         {
-            if (string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(request.Title))
                 return BadRequest("Title is required.");
 
-            if (file == null || file.Length == 0)
+            if (request.File == null || request.File.Length == 0)
                 return BadRequest("Audio file is required.");
 
-            var ids = ParseCategoryIds(categoryIds);
+            var ids = ParseCategoryIds(request.CategoryIds);
 
             if (ids.Count > 0)
             {
@@ -286,17 +284,17 @@ namespace PersonalPodcast.Controllers
                     return BadRequest($"Invalid category id(s): {string.Join(", ", missing)}");
             }
 
-            var (audioUrl, durationSeconds) = await _cloudinary.UploadAudioAsync(file);
+            var (audioUrl, durationSeconds) = await _cloudinary.UploadAudioAsync(request.File);
 
             var episode = new Episode
             {
-                Title = title.Trim(),
-                Description = description,
+                Title = request.Title.Trim(),
+                Description = request.Description,
                 AudioUrl = audioUrl,
                 DurationSeconds = Math.Max(durationSeconds, 1),
-                Season = season,
-                IsPublished = isPublished,
-                PublishedDate = isPublished ? DateTime.UtcNow : null,
+                Season = request.Season,
+                IsPublished = request.IsPublished,
+                PublishedDate = request.IsPublished ? DateTime.UtcNow : null,
                 PlayCount = 0,
                 CreatedAt = DateTime.UtcNow
             };
@@ -323,14 +321,8 @@ namespace PersonalPodcast.Controllers
         }
 
         [HttpPut("episodes/{id:int}")]
-        public async Task<IActionResult> Update(
-            int id,
-            [FromForm] string title,
-            [FromForm] string? description,
-            [FromForm] string? categoryIds,
-            [FromForm] int? season,
-            [FromForm] bool isPublished,
-            [FromForm] IFormFile? file)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Update(int id, [FromForm] UpdateEpisodeFormRequest request)
         {
             var episode = await _db.Episodes
                 .Include(e => e.EpisodeCategories)
@@ -339,14 +331,14 @@ namespace PersonalPodcast.Controllers
             if (episode == null)
                 return NotFound("Episode not found.");
 
-            if (string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(request.Title))
                 return BadRequest("Title is required.");
 
-            episode.Title = title.Trim();
-            episode.Description = description;
-            episode.Season = season;
+            episode.Title = request.Title.Trim();
+            episode.Description = request.Description;
+            episode.Season = request.Season;
 
-            if (!isPublished)
+            if (!request.IsPublished)
             {
                 episode.IsPublished = false;
                 episode.PublishedDate = null;
@@ -359,14 +351,14 @@ namespace PersonalPodcast.Controllers
                 episode.IsPublished = true;
             }
 
-            if (file != null && file.Length > 0)
+            if (request.File != null && request.File.Length > 0)
             {
-                var (newAudioUrl, newDurationSeconds) = await _cloudinary.UploadAudioAsync(file);
+                var (newAudioUrl, newDurationSeconds) = await _cloudinary.UploadAudioAsync(request.File);
                 episode.AudioUrl = newAudioUrl;
                 episode.DurationSeconds = Math.Max(newDurationSeconds, 1);
             }
 
-            var ids = ParseCategoryIds(categoryIds);
+            var ids = ParseCategoryIds(request.CategoryIds);
 
             if (ids.Count > 0)
             {
@@ -423,5 +415,25 @@ namespace PersonalPodcast.Controllers
 
             return NoContent();
         }
+    }
+
+    public class CreateEpisodeFormRequest
+    {
+        public string Title { get; set; } = default!;
+        public string? Description { get; set; }
+        public string? CategoryIds { get; set; }
+        public int? Season { get; set; }
+        public bool IsPublished { get; set; }
+        public IFormFile File { get; set; } = default!;
+    }
+
+    public class UpdateEpisodeFormRequest
+    {
+        public string Title { get; set; } = default!;
+        public string? Description { get; set; }
+        public string? CategoryIds { get; set; }
+        public int? Season { get; set; }
+        public bool IsPublished { get; set; }
+        public IFormFile? File { get; set; }
     }
 }

@@ -9,14 +9,18 @@ using PersonalPodcast.Data;
 using PersonalPodcast.Services;
 using System.Text;
 
-// e loadim .env file ku e kena rujt konfigurimin e cloudinary
-Env.Load();
 
-Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
+//Env.Load();
+
+//Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
 
 
+//var builder = WebApplication.CreateBuilder(args);
+
+// qit pjesen muni me komenti deri te console write line. Edhe q'komentojeni qit pjesen nalt nese e keni env file nfolder tbackendit jo nroot
 var builder = WebApplication.CreateBuilder(args);
-
+Env.Load(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
+Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
 
 // CORS policy per me lan backendin me komuniku me frontin 
 builder.Services.AddCors(options =>
@@ -24,10 +28,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000") // e boni me origjinen e frontit t juve deri te hostojna frontin
-                  .AllowAnyHeader()
-                  .AllowAnyMethod() // nese do te dergojme cookies nga fronti, e boni me kete rresht
-                  .AllowCredentials(); 
+            policy
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials()
+              .SetIsOriginAllowed(_ => true);
         });
 });
 

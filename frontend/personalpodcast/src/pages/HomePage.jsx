@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-
+import { API_BASE, apiUrl } from "../config/api";
 export default function HomePage() {
   const api = useMemo(() => {
     return axios.create({
-      baseURL: "https://localhost:7261",
+      baseURL: API_BASE || undefined
     });
   }, []);
 
@@ -36,8 +36,7 @@ export default function HomePage() {
   const getEpisodeId = (ep) => ep?.id ?? ep?.Id;
 
   const fetchAccess = async (episodeId) => {
-    const res = await authFetch(
-      `https://localhost:7261/api/orders/episodes/${episodeId}`,
+    const res = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`),
       {
         method: "GET",
       },
@@ -75,7 +74,7 @@ export default function HomePage() {
   };
 
   const orderEpisode = async (episodeId) => {
-    const res = await authFetch("https://localhost:7261/api/orders", {
+      const res = await authFetch(apiUrl("/api/orders"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ episodeId }),
@@ -85,8 +84,7 @@ export default function HomePage() {
       await fetchAccess(episodeId);
       const owned = accessByEpisodeId[episodeId]?.state === "owned";
       if (!owned) {
-        const check = await authFetch(
-          `https://localhost:7261/api/orders/episodes/${episodeId}`,
+          const check = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`),
           {
             method: "GET",
           },
