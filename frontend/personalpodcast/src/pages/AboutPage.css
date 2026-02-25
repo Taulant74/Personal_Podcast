@@ -1,0 +1,240 @@
+.about-page {
+  background-color: #37353E;
+  color: #D3DAD9;
+  min-height: calc(100vh - 80px);
+}
+
+/* Hero Section */
+.about-hero {
+  background: linear-gradient(135deg, #44444E 0%, #2a2a30 100%);
+  padding: 80px 0 60px;
+  border-bottom: 3px solid #6C5B7B;
+}
+
+.about-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 20px;
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+
+.about-subtitle {
+  font-size: 1.3rem;
+  color: #B8C1BF;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+  font-weight: 300;
+}
+
+/* Section Styling */
+.about-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 30px;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.about-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #6C5B7B, #44444E);
+  border-radius: 2px;
+}
+
+.about-section {
+  border-radius: 8px;
+  padding: 40px;
+  background: rgba(68, 68, 78, 0.3);
+  border: 1px solid rgba(107, 91, 123, 0.3);
+}
+
+.about-text {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #B8C1BF;
+  margin-bottom: 20px;
+}
+
+/* Highlight Box */
+.about-highlight-box {
+  background: linear-gradient(135deg, #44444E 0%, #2a2a30 100%);
+  padding: 40px;
+  border-radius: 8px;
+  border-left: 5px solid #6C5B7B;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.about-highlight-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.highlight-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.about-highlight-box h3 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.about-highlight-box p {
+  color: #B8C1BF;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Feature Cards */
+.feature-card {
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.2), rgba(68, 68, 78, 0.2));
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(107, 91, 123, 0.4);
+  text-align: center;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.3), rgba(68, 68, 78, 0.3));
+  border-color: rgba(107, 91, 123, 0.6);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 18px;
+  display: block;
+}
+
+.feature-card h4 {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.feature-card p {
+  color: #B8C1BF;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Community Box */
+.community-box {
+  background: linear-gradient(135deg, #44444E 0%, #2a2a30 100%);
+  padding: 60px;
+  border-radius: 12px;
+  border: 2px solid #6C5B7B;
+  text-align: center;
+}
+
+.community-box .about-section-title {
+  text-align: center;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.community-box .about-section-title::after {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.btn-primary-custom {
+  background: linear-gradient(135deg, #6C5B7B, #5A4A6A);
+  color: #ffffff;
+  border: none;
+  padding: 15px 40px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary-custom:hover {
+  background: linear-gradient(135deg, #7D6C8C, #6B5A7B);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(107, 91, 123, 0.4);
+  color: #ffffff;
+}
+
+.btn-primary-custom:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .about-title {
+    font-size: 2rem;
+  }
+
+  .about-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .about-section {
+    padding: 25px;
+  }
+
+  .about-section-title {
+    font-size: 1.6rem;
+  }
+
+  .community-box {
+    padding: 30px;
+  }
+
+  .about-hero {
+    padding: 50px 0 40px;
+  }
+}
+
+@media (max-width: 576px) {
+  .about-title {
+    font-size: 1.5rem;
+  }
+
+  .about-subtitle {
+    font-size: 1rem;
+  }
+
+  .about-section-title {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+
+  .about-section-title::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .feature-card {
+    padding: 20px;
+  }
+
+  .feature-icon {
+    font-size: 2rem;
+  }
+
+  .btn-primary-custom {
+    padding: 12px 30px;
+    font-size: 0.95rem;
+  }
+}
