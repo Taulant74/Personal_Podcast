@@ -74,6 +74,18 @@ function Header() {
         >
           Categories
         </NavLink>
+        <NavLink
+          to="/about"
+          className="text-decoration-none nav-link-custom"
+        >
+          About Us
+        </NavLink>
+        <NavLink
+          to="/help"
+          className="text-decoration-none nav-link-custom"
+        >
+          Help
+        </NavLink>
       </div>
 
       <div className="d-flex align-items-center gap-3">

@@ -1,0 +1,377 @@
+.help-page {
+  background-color: #37353E;
+  color: #D3DAD9;
+  min-height: calc(100vh - 80px);
+}
+
+/* Hero Section */
+.help-hero {
+  background: linear-gradient(135deg, #44444E 0%, #2a2a30 100%);
+  padding: 80px 0 60px;
+  border-bottom: 3px solid #6C5B7B;
+}
+
+.help-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 20px;
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+
+.help-subtitle {
+  font-size: 1.3rem;
+  color: #B8C1BF;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+  font-weight: 300;
+}
+
+/* Section Styling */
+.help-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 30px;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.help-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #6C5B7B, #44444E);
+  border-radius: 2px;
+}
+
+.help-section {
+  border-radius: 8px;
+  padding: 40px;
+  background: rgba(68, 68, 78, 0.3);
+  border: 1px solid rgba(107, 91, 123, 0.3);
+}
+
+.help-text {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #B8C1BF;
+  margin-bottom: 20px;
+}
+
+/* Step Cards */
+.step-card {
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.2), rgba(68, 68, 78, 0.2));
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(107, 91, 123, 0.4);
+  display: flex;
+  gap: 25px;
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.3), rgba(68, 68, 78, 0.3));
+  border-color: rgba(107, 91, 123, 0.6);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  transform: translateX(5px);
+}
+
+.step-number {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #6C5B7B, #5A4A6A);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.step-content {
+  flex-grow: 1;
+}
+
+.step-content h3 {
+  color: #ffffff;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  margin-top: 0;
+}
+
+.step-content > p {
+  color: #B8C1BF;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.step-details {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.step-details:last-child {
+  margin-bottom: 0;
+}
+
+.step-details h5 {
+  color: #D3DAD9;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  margin-top: 0;
+}
+
+.help-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.help-list li {
+  color: #B8C1BF;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 6px;
+  padding-left: 22px;
+  position: relative;
+}
+
+.help-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #6C5B7B;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.help-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* FAQ Section */
+.faq-container {
+  display: grid;
+  gap: 15px;
+}
+
+.faq-item {
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.15), rgba(68, 68, 78, 0.15));
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #6C5B7B;
+  transition: all 0.3s ease;
+}
+
+.faq-item:hover {
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.25), rgba(68, 68, 78, 0.25));
+  transform: translateX(5px);
+}
+
+.faq-item h4 {
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  margin-top: 0;
+}
+
+.faq-item p {
+  color: #B8C1BF;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Tips Grid */
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.tip-box {
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.2), rgba(68, 68, 78, 0.2));
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid rgba(107, 91, 123, 0.4);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.tip-box:hover {
+  transform: translateY(-8px);
+  background: linear-gradient(135deg, rgba(107, 91, 123, 0.3), rgba(68, 68, 78, 0.3));
+  border-color: rgba(107, 91, 123, 0.6);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.tip-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.tip-box h4 {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  margin-top: 0;
+}
+
+.tip-box p {
+  color: #B8C1BF;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Support Box */
+.support-box {
+  background: linear-gradient(135deg, #44444E 0%, #2a2a30 100%);
+  padding: 60px;
+  border-radius: 12px;
+  border: 2px solid #6C5B7B;
+  text-align: center;
+}
+
+.support-box .help-section-title {
+  text-align: center;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.support-box .help-section-title::after {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.btn-primary-custom {
+  background: linear-gradient(135deg, #6C5B7B, #5A4A6A);
+  color: #ffffff;
+  border: none;
+  padding: 15px 40px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary-custom:hover {
+  background: linear-gradient(135deg, #7D6C8C, #6B5A7B);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(107, 91, 123, 0.4);
+  color: #ffffff;
+}
+
+.btn-primary-custom:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .help-title {
+    font-size: 2rem;
+  }
+
+  .help-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .help-section {
+    padding: 25px;
+  }
+
+  .help-section-title {
+    font-size: 1.6rem;
+  }
+
+  .step-card {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .step-number {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .support-box {
+    padding: 30px;
+  }
+
+  .help-hero {
+    padding: 50px 0 40px;
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .help-title {
+    font-size: 1.5rem;
+  }
+
+  .help-subtitle {
+    font-size: 1rem;
+  }
+
+  .help-section-title {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+
+  .help-section-title::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .help-section {
+    padding: 15px;
+  }
+
+  .step-card {
+    padding: 15px;
+  }
+
+  .step-number {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+
+  .step-details {
+    padding: 10px;
+  }
+
+  .faq-item {
+    padding: 15px;
+  }
+
+  .support-box {
+    padding: 20px;
+  }
+
+  .btn-primary-custom {
+    padding: 12px 30px;
+    font-size: 0.95rem;
+  }
+}
