@@ -1,0 +1,29 @@
+/* Default (Desktop) */
+.user-panel-card {
+  width: 50%;
+  padding: 3rem;
+  background-color: #44444E;
+}
+
+/* Medium screens */
+@media (max-width: 1200px) {
+  .user-panel-card {
+    width: 65%;
+  }
+}
+
+/* Tablets */
+@media (max-width: 992px) {
+  .user-panel-card {
+    width: 80%;
+    padding: 2.5rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  .user-panel-card {
+    width: 95%;
+    padding: 1.5rem;
+  }
+}
