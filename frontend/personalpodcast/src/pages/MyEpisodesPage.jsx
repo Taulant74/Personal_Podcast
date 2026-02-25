@@ -38,7 +38,6 @@ export default function MyEpisodesPage() {
         setLoading(true);
         setMsg("Loading your episodes...");
 
-        // ✅ CHANGE THIS URL if your backend route is different
           const res = await authFetch(apiUrl("/api/orders/my-episodes"), {
           method: "GET",
         });
@@ -528,7 +527,7 @@ export default function MyEpisodesPage() {
                                 e.target.style.transform = "scale(1)";
                               }}
                             >
-                              {isPlaying ? "⏸" : "▶"}
+                              {isPlaying ? "⏸" : <i className="bi bi-play-fill"></i>}
                             </button>
 
                             <button

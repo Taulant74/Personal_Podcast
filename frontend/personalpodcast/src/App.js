@@ -6,7 +6,6 @@ import HomePage from "./pages/HomePage";
 import AdminDashboard from "./pages/AdminDashboard";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import CategoryPage from "./pages/CategoryPage";
 import PublisherDashboard from "./pages/PublisherDashboard";
 import { AuthProvider } from "./context/AuthContext";
 import UserPanelPage from "./pages/UserPanelPage";
@@ -41,7 +40,6 @@ function App() {
             </Route>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/categories" element={<CategoryPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />
           </Routes>

@@ -1,69 +1,183 @@
+/* ===== Layout ===== */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 30px;
+  background-color: #44444E;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+}
+
+.right-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* ===== Logo ===== */
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #D3DAD9;
+}
+
+.logo-container img {
+  height: 50px;
+}
+
+.logo-container h3 {
+  margin: 0;
+}
+
+/* ===== Desktop Nav ===== */
+
+.desktop-nav {
+  display: flex;
+  gap: 40px;
+}
+
 .nav-link-custom {
   color: #D3DAD9;
-  transition: all 0.3s ease;
+  text-decoration: none;
+  transition: 0.3s;
 }
 
 .nav-link-custom.active {
-  color: #DDA853 !important; 
+  color: #DDA853;
   font-weight: bold;
 }
 
 .nav-link-custom:hover {
-  color: #ffffff;
+  color: white;
 }
 
-.btn-login-custom {
-  color: #D3DAD9 !important;
-  border: 1px solid #D3DAD9 !important;
-  background-color: transparent;
-  transition: all 0.4s ease;
+/* ===== Buttons ===== */
+
+.btn-login {
+  color: #D3DAD9;
+  border: 1px solid #D3DAD9;
+  padding: 6px 14px;
+  text-decoration: none;
+  transition: 0.3s;
 }
 
-.btn-login-custom:hover {
-  background-color: #D3DAD9 !important;
-  color: #44444E !important;
+.btn-login:hover {
+  background: #D3DAD9;
+  color: #44444E;
 }
 
-.btn-signup-custom {
-  background-color: #D3DAD9 !important;
-  border: 1px solid #D3DAD9 !important;
-  color: #44444E !important;
-  border: none;
-  transition: all 0.4s ease;
+.btn-signup {
+  background: #D3DAD9;
+  color: #44444E;
+  padding: 6px 14px;
+  text-decoration: none;
+  transition: 0.3s;
 }
 
-.btn-signup-custom:hover {
-  background-color: #DDA853 !important;
-  border: 1px solid #DDA853 !important;
-  color: #ffffff !important;
+.btn-signup:hover {
+  background: #DDA853;
+  color: white;
 }
 
-/* dropdown helpers for user menu */
+/* ===== User Dropdown ===== */
+
 .user-dropdown-container {
   position: relative;
-  display: inline-block;
+}
+
+.username {
+  cursor: pointer;
+  color: white;
 }
 
 .user-dropdown-menu {
   position: absolute;
   top: 100%;
   right: 0;
-  background-color: #ffffff;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  min-width: 150px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  z-index: 1000;
+  background: white;
+  border-radius: 6px;
+  min-width: 160px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
 }
 
-.user-dropdown-item {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  color: #44444E;
+.user-dropdown-menu a,
+.user-dropdown-menu div {
+  padding: 10px;
   text-decoration: none;
-  display: block;
+  color: #44444E;
+  cursor: pointer;
 }
 
-.user-dropdown-item:hover {
-  background-color: #f0f0f0;
+.user-dropdown-menu a:hover,
+.user-dropdown-menu div:hover {
+  background: #f0f0f0;
+}
+
+/* ===== Mobile Nav ===== */
+
+.burger-icon {
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+}
+
+.mobile-nav-wrapper {
+  position: relative;
+}
+
+.mobile-navigation-menu {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  background: #44444E;
+  border-radius: 8px;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+
+.mobile-navigation-menu a {
+  padding: 12px;
+  color: #D3DAD9;
+  text-decoration: none;
+}
+
+.mobile-navigation-menu a:hover {
+  background: #575761;
+}
+
+/* Default Desktop */
+.desktop-only {
+  display: flex;
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* Mobile */
+@media (max-width: 810px) {
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  .desktop-nav {
+    display: none;
+  }
 }
