@@ -5,6 +5,7 @@ using PersonalPodcast.Data;
 using PersonalPodcast.DTOs.Users;
 using PersonalPodcast.Models;
 using PersonalPodcast.Services;
+using PersonalPodcast.DTOs.Episodes;
 
 namespace PersonalPodcast.Controllers
 {
@@ -415,25 +416,5 @@ namespace PersonalPodcast.Controllers
 
             return NoContent();
         }
-    }
-
-    public class CreateEpisodeFormRequest
-    {
-        public string Title { get; set; } = default!;
-        public string? Description { get; set; }
-        public string? CategoryIds { get; set; }
-        public int? Season { get; set; }
-        public bool IsPublished { get; set; }
-        public IFormFile File { get; set; } = default!;
-    }
-
-    public class UpdateEpisodeFormRequest
-    {
-        public string Title { get; set; } = default!;
-        public string? Description { get; set; }
-        public string? CategoryIds { get; set; }
-        public int? Season { get; set; }
-        public bool IsPublished { get; set; }
-        public IFormFile? File { get; set; }
     }
 }
