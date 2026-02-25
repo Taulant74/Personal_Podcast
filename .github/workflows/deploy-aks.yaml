@@ -1,0 +1,79 @@
+name: Build & Deploy to AKS
+
+on:
+  push:
+    branches: [ "deploy" ]
+
+permissions:
+  contents: read
+
+env:
+  ACR_NAME: personalpodcast
+  ACR_LOGIN_SERVER: personalpodcast.azurecr.io
+  IMAGE_TAG: ${{ github.sha }}
+  AKS_RG: rg-personalpodcast
+  AKS_NAME: akc-personalpodcast
+  NAMESPACE: personalpodcast
+
+jobs:
+  build_push_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: ACR Login
+        run: az acr login --name $ACR_NAME
+
+      - name: Build & Push Backend
+        run: |
+          set -e
+          docker build \
+            -f backend/Dockerfile \
+            -t $ACR_LOGIN_SERVER/personalpodcast-backend:$IMAGE_TAG \
+            backend
+          docker push $ACR_LOGIN_SERVER/personalpodcast-backend:$IMAGE_TAG
+
+      - name: Build & Push Frontend
+        run: |
+          set -e
+          docker build \
+            -f frontend/personalpodcast/Dockerfile \
+            -t $ACR_LOGIN_SERVER/personalpodcast-frontend:$IMAGE_TAG \
+            frontend/personalpodcast
+          docker push $ACR_LOGIN_SERVER/personalpodcast-frontend:$IMAGE_TAG
+
+      - name: Set AKS context
+        uses: Azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.AKS_RG }}
+          cluster-name: ${{ env.AKS_NAME }}
+
+      - name: Apply Kubernetes manifests
+        run: |
+          set -e
+          kubectl apply -f k8s/00-namespace.yaml
+          kubectl apply -f k8s/03-backend.yaml
+          kubectl apply -f k8s/04-frontend.yaml
+          kubectl apply -f k8s/05-ingress.yaml
+
+      - name: Update images
+        run: |
+          set -e
+          kubectl -n $NAMESPACE set image deployment/personalpodcast-backend \
+            api=$ACR_LOGIN_SERVER/personalpodcast-backend:$IMAGE_TAG
+
+          kubectl -n $NAMESPACE set image deployment/personalpodcast-frontend \
+            web=$ACR_LOGIN_SERVER/personalpodcast-frontend:$IMAGE_TAG
+
+      - name: Rollout status
+        run: |
+          set -e
+          kubectl -n $NAMESPACE rollout status deployment/personalpodcast-backend --timeout=180s
+          kubectl -n $NAMESPACE rollout status deployment/personalpodcast-frontend --timeout=180s
