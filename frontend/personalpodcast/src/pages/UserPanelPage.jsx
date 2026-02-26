@@ -3,6 +3,8 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from '../components/LoadingSpinner';
 import { apiUrl } from "../config/api";
+import "../components/css/UserPannelPage.css";
+
 function UserPanelPage() {
   const { user: authUser, authFetch, loading: authLoading } = useAuth();
 
@@ -169,10 +171,10 @@ function UserPanelPage() {
   return (
     <div className="d-flex pt-5 align-items-center justify-content-center">
       <div
-        className="d-flex flex-column w-50 p-5 rounded-4 shadow-lg gap-4"
+        className="user-panel-card d-flex flex-column rounded-4 shadow-lg gap-4"
         style={{ backgroundColor: "#44444E" }}
       >
-        <h1 style={{ color: "#D3DAD9" }}>User Panel</h1>
+        <h1 style={{ color: "#D3DAD9" }}>{authUser?.username}'s user Info</h1>
 
         {renderField("Username", "username")}
         {renderField("First Name", "firstName")}

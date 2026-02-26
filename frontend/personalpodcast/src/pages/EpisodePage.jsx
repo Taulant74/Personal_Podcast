@@ -11,7 +11,7 @@ export default function EpisodePage() {
     });
   }, []);
 
-  const { authFetch, isLoggedIn } = useAuth();
+  const { authFetch } = useAuth();
 
   const [episodes, setEpisodes] = useState([]);
   const [msg, setMsg] = useState("Loading episodes...");
@@ -311,7 +311,7 @@ export default function EpisodePage() {
         fetchAccess(id);
       }
     });
-  }, [episodes]);
+  }, [episodes, accessByEpisodeId]);
 
   function formatDuration(seconds) {
     if (!seconds || Number.isNaN(seconds)) return null;
