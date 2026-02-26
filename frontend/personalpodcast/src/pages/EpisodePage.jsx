@@ -7,17 +7,23 @@ import { API_BASE, apiUrl } from "../config/api";
 export default function EpisodePage() {
   const api = useMemo(() => {
     return axios.create({
-      baseURL: API_BASE || undefined
+      baseURL: API_BASE || undefined,
     });
   }, []);
 
-  const { authFetch, isLoggedIn } = useAuth();
+  const { authFetch } = useAuth();
 
   const [episodes, setEpisodes] = useState([]);
   const [msg, setMsg] = useState("Loading episodes...");
   const [loading, setLoading] = useState(false);
 
+  const [searchText, setSearchText] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [query, setQuery] = useState("");
+
+  const [categoryId, setCategoryId] = useState(null);
+
+  const [categories, setCategories] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(12);
   const [total, setTotal] = useState(0);
@@ -38,11 +44,9 @@ export default function EpisodePage() {
   const getEpisodeId = (ep) => ep?.id ?? ep?.Id;
 
   const fetchAccess = async (episodeId) => {
-    const res = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`),
-      {
-        method: "GET",
-      },
-    );
+    const res = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`), {
+      method: "GET",
+    });
 
     if (res.status === 200) {
       const data = await res.json();
@@ -76,7 +80,7 @@ export default function EpisodePage() {
   };
 
   const orderEpisode = async (episodeId) => {
-      const res = await authFetch(apiUrl("/api/orders"), {
+    const res = await authFetch(apiUrl("/api/orders"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ episodeId }),
@@ -86,7 +90,8 @@ export default function EpisodePage() {
       await fetchAccess(episodeId);
       const owned = accessByEpisodeId[episodeId]?.state === "owned";
       if (!owned) {
-          const check = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`),
+        const check = await authFetch(
+          apiUrl(`/api/orders/episodes/${episodeId}`),
           {
             method: "GET",
           },
@@ -202,6 +207,23 @@ export default function EpisodePage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await api.get("/api/categories");
+        if (!cancelled) setCategories(Array.isArray(res.data) ? res.data : []);
+      } catch {
+        if (!cancelled) setCategories([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && playerOpen) {
         closePlayer();
@@ -222,6 +244,7 @@ export default function EpisodePage() {
         const res = await api.get("/api/Episodes/search", {
           params: {
             Q: query.trim() || undefined,
+            CategoryId: categoryId ?? undefined,
             Page: page,
             PageSize: pageSize,
           },
@@ -272,7 +295,7 @@ export default function EpisodePage() {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [api, query, page, pageSize]);
+  }, [api, query, categoryId, page, pageSize]);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -288,7 +311,7 @@ export default function EpisodePage() {
         fetchAccess(id);
       }
     });
-  }, [episodes]);
+  }, [episodes, accessByEpisodeId]);
 
   function formatDuration(seconds) {
     if (!seconds || Number.isNaN(seconds)) return null;
@@ -375,7 +398,6 @@ export default function EpisodePage() {
   width: 100%;
   border-radius: 12px;
 
-  /* Make native controls dark */
   filter: invert(1) hue-rotate(180deg) brightness(0.9);
 }
 .cap-audio{
@@ -547,15 +569,12 @@ export default function EpisodePage() {
           <div className="d-flex flex-wrap gap-2 align-items-center">
             <div className="pp-glass" style={{ padding: 6, borderRadius: 999 }}>
               <input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Search title, description, category…"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search publisher or title…"
                 className="form-control pp-search-input"
                 style={{
-                  width: 280,
+                  width: 320,
                   border: "none",
                   background: "transparent",
                   color: "rgba(233,238,252,0.92)",
@@ -565,21 +584,77 @@ export default function EpisodePage() {
               />
             </div>
 
+            <div className="pp-glass" style={{ padding: 6, borderRadius: 999 }}>
+              <select
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                className="form-select"
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "rgba(233,238,252,0.92)",
+                  outline: "none",
+                  boxShadow: "none",
+                  width: 180,
+                }}
+              >
+                <option value="" style={{ color: "#111" }}>
+                  All categories
+                </option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id} style={{ color: "#111" }}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <button
               className="btn pp-glass"
               onClick={() => {
-                setQuery("");
+                setQuery(searchText.trim());
+                setCategoryId(selectedCategoryId ? Number(selectedCategoryId) : null);
                 setPage(1);
               }}
-              disabled={!query.trim()}
+              style={{
+                color: "rgba(233,238,252,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                fontWeight: 800,
+                borderRadius: 999,
+                padding: "8px 14px",
+              }}
+            >
+              Search
+            </button>
+
+            <button
+              className="btn pp-glass"
+              onClick={() => {
+                setSearchText("");
+                setSelectedCategoryId("");
+                setQuery("");
+                setCategoryId(null);
+                setPage(1);
+              }}
+              disabled={
+                !searchText.trim() &&
+                !selectedCategoryId &&
+                !query.trim() &&
+                categoryId == null
+              }
               style={{
                 color: "rgba(233,238,252,0.92)",
                 border: "1px solid rgba(255,255,255,0.12)",
                 fontWeight: 800,
                 borderRadius: 999,
                 padding: "8px 12px",
-                opacity: query.trim() ? 1 : 0.6,
-                cursor: query.trim() ? "pointer" : "not-allowed",
+                opacity:
+                  !searchText.trim() &&
+                  !selectedCategoryId &&
+                  !query.trim() &&
+                  categoryId == null
+                    ? 0.6
+                    : 1,
               }}
             >
               Clear
@@ -985,7 +1060,6 @@ export default function EpisodePage() {
                       <source src={src} />
                     </audio>
 
-                    {/* everything below stays EXACTLY like your current player UI */}
                     <div style={{ marginBottom: 12 }}>
                       <input
                         type="range"
