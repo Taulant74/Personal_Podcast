@@ -94,13 +94,14 @@ namespace PersonalPodcast.Controllers
             if (!success)
                 return NotFound(error);
 
-            Response.Cookies.Append("refreshToken", "", new CookieOptions
+            var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(-1)
-            });
+                SameSite = SameSiteMode.None
+            };
+
+            Response.Cookies.Delete("refreshToken", cookieOptions);
 
             return Ok(new { message = "User deleted and logged out." });
         }

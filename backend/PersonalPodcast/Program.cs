@@ -68,7 +68,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnAuthenticationFailed = ctx =>
             {
-                Console.WriteLine("=== JWT AUTH FAILED === hahhahahaah");
+                Console.WriteLine("jwt problem");
                 Console.WriteLine(ctx.Exception.ToString());
                 Console.WriteLine("=======================");
                 return Task.CompletedTask;
