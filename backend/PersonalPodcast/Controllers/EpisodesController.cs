@@ -179,5 +179,60 @@ namespace PersonalPodcast.Controllers
             return Ok(dto);
         }
 
+        [HttpGet("top-by-category")]
+        public async Task<ActionResult<List<TopEpisodeByCategoryDto>>> TopByCategory([FromQuery] int limit = 6)
+        {
+            if (limit < 1) limit = 1;
+            if (limit > 50) limit = 50;
+
+            var raw = await _db.Categories
+                .AsNoTracking()
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    TopEpisode = c.EpisodeCategories
+                        .Select(ec => ec.Episode)
+                        .Where(e => e != null && e.IsPublished)
+                        .OrderByDescending(e => e!.PlayCount)
+                        .ThenByDescending(e => e!.PublishedDate ?? e!.CreatedAt)
+                        .Select(e => new
+                        {
+                            e!.Id,
+                            e.Title,
+                            e.Description,
+                            e.AudioUrl,
+                            e.DurationSeconds,
+                            e.PublishedDate,
+                            e.PlayCount,
+                            Categories = e.EpisodeCategories
+                                .Where(ec => ec.Category != null)
+                                .Select(ec => ec.Category!.Name)
+                                .Distinct()
+                        })
+                        .FirstOrDefault()
+                })
+                .Where(x => x.TopEpisode != null)
+                .OrderByDescending(x => x.TopEpisode!.PlayCount)
+                .Take(limit)
+                .ToListAsync();
+
+            var result = raw.Select(x => new TopEpisodeByCategoryDto
+            {
+                CategoryId = x.Id,
+                CategoryName = x.Name,
+
+                EpisodeId = x.TopEpisode!.Id,
+                Title = x.TopEpisode!.Title,
+                Description = x.TopEpisode!.Description,
+                AudioUrl = x.TopEpisode!.AudioUrl,
+                DurationSeconds = x.TopEpisode!.DurationSeconds,
+                PublishedDate = x.TopEpisode!.PublishedDate,
+                PlayCount = x.TopEpisode!.PlayCount,
+                Categories = x.TopEpisode!.Categories.ToList()
+            }).ToList();
+
+            return Ok(result);
+        }
     }
 }
