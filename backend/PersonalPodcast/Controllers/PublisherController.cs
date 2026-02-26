@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
 using PersonalPodcast.Models;
 using PersonalPodcast.Services;
+using PersonalPodcast.DTOs.Episodes;
 using System.Security.Claims;
 
 namespace PersonalPodcast.Controllers;
@@ -245,25 +246,5 @@ public class PublisherController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new { episode.Id });
-    }
-
-    public class UploadEpisodeRequest
-    {
-        public string title { get; set; } = default!;
-        public string? description { get; set; }
-        public string? categoryIds { get; set; }
-        public int? season { get; set; }
-        public bool isPublished { get; set; }
-        public IFormFile file { get; set; } = default!;
-    }
-
-    public class UpdateEpisodeRequest
-    {
-        public string title { get; set; } = default!;
-        public string? description { get; set; }
-        public string? categoryIds { get; set; }
-        public int? season { get; set; }
-        public bool isPublished { get; set; }
-        public IFormFile? file { get; set; }
     }
 }
