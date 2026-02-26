@@ -6,7 +6,7 @@ import HomePage from "./pages/HomePage";
 import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import PublisherDashboard from "./pages/PublisherDashboard";
+import PublisherDashboard from "./pages/PublisherDashboard/PublisherDashboard";
 import { AuthProvider } from "./context/AuthContext";
 import UserPanelPage from "./pages/UserPanelPage";
 import RequireRole from "./components/RequireRole";

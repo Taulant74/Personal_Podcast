@@ -318,3 +318,24 @@ select.form-select-sm{
   color: white;
   box-shadow: 0 8px 25px rgba(124,58,237,.35);
 }
+.btn-action-success{
+  border-color: rgba(34,197,94,.35) !important;
+  background: rgba(34,197,94,.10) !important;
+  color: #bbf7d0 !important;
+}
+.btn-action-success:hover{
+  background: rgba(34,197,94,.16) !important;
+  border-color: rgba(34,197,94,.55) !important;
+  box-shadow: 0 16px 34px rgba(34,197,94,.22);
+}
+
+.btn-action-warn{
+  border-color: rgba(245,158,11,.35) !important;
+  background: rgba(245,158,11,.10) !important;
+  color: #fde68a !important;
+}
+.btn-action-warn:hover{
+  background: rgba(245,158,11,.16) !important;
+  border-color: rgba(245,158,11,.55) !important;
+  box-shadow: 0 16px 34px rgba(245,158,11,.22);
+}
