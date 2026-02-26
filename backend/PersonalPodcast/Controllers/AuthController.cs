@@ -127,13 +127,14 @@ namespace PersonalPodcast.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            Response.Cookies.Append("refreshToken", "", new CookieOptions
+            var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(-1) 
-            });
+                SameSite = SameSiteMode.None 
+            };
+
+            Response.Cookies.Delete("refreshToken", cookieOptions);
 
             return Ok(new { message = "Logged out successfully" });
         }
