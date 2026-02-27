@@ -14,6 +14,7 @@ import OrderPage from './pages/OrderPage';
 import MyEpisodesPage from './pages/MyEpisodesPage';
 import AboutPage from "./pages/AboutPage";
 import HelpPage from "./pages/HelpPage";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />
           </Routes>
+          <Footer />
         </div>
       </Router>
     </AuthProvider>
