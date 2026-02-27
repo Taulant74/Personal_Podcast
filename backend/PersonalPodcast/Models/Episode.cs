@@ -12,6 +12,7 @@
         public int DurationSeconds { get; set; }
         public int? Season { get; set; }
         public bool IsPublished { get; set; }
+        public bool IsPremium { get; set; } = false;
         public DateTime? PublishedDate { get; set; }
         public int PlayCount { get; set; }
         public int? PublisherId { get; set; }

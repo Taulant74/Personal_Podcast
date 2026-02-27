@@ -11,7 +11,7 @@ namespace PersonalPodcast.DTOs.Episodes
 
         public bool IsPublished { get; set; }
         public DateTime? PublishedDate { get; set; }
-
+        public bool IsPremium { get; set; }
         public int PlayCount { get; set; }
         public DateTime CreatedAt { get; set; }
 

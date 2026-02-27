@@ -4,6 +4,7 @@ export const emptyCreateEpisode = {
   description: "",
   season: "",
   isPublished: true,
+  isPremium: false, 
   file: null,
 };
 

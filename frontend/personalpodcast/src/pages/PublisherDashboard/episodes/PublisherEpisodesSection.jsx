@@ -100,6 +100,7 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
       description: ep.description || "",
       season: ep.season == null ? "" : String(ep.season),
       isPublished: !!ep.isPublished,
+      isPremium: !!(ep.isPremium ?? ep.IsPremium), 
       file: null,
     });
 

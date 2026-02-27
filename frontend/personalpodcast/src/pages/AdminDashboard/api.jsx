@@ -53,6 +53,8 @@ export function buildEpisodeFormData(form, requireFile, categoryIds) {
 
   fd.append("isPublished", String(!!form.isPublished));
 
+  fd.append("IsPremium", String(!!form.isPremium));
+
   if (form.file) fd.append("file", form.file);
   else if (requireFile) throw new Error("Audio file is required.");
 

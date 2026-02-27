@@ -100,7 +100,21 @@ export default function EpisodeForm({
             </label>
           </div>
         </div>
-
+<div className="col-md-6">
+  <label className="form-label d-block">Premium</label>
+  <div className="form-check form-switch">
+    <input
+      className="form-check-input"
+      type="checkbox"
+      checked={!!form.isPremium}
+      onChange={(e) => setForm((p) => ({ ...p, isPremium: e.target.checked }))}
+      id="premiumSwitch_pub"
+    />
+    <label className="form-check-label" htmlFor="premiumSwitch_pub" style={{ color: "var(--text)" }}>
+      {form.isPremium ? "Premium" : "Free"}
+    </label>
+  </div>
+</div>
         <div className="col-12">
           <label className="form-label">
             Audio file{" "}

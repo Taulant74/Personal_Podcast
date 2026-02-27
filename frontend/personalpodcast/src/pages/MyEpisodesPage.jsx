@@ -22,6 +22,21 @@ export default function MyEpisodesPage() {
   const [currentTimeById, setCurrentTimeById] = useState({});
   const [durationById, setDurationById] = useState({});
 
+  const countedPlaysRef = useRef(new Set());
+
+  const incrementPlayOnce = async (episodeId) => {
+  if (!episodeId) return;
+  if (countedPlaysRef.current.has(episodeId)) return;
+
+  countedPlaysRef.current.add(episodeId);
+
+  try {
+    await api.post(`/api/Episodes/${episodeId}/play`);
+  } catch (err) {
+    countedPlaysRef.current.delete(episodeId);
+    console.error("Failed to increment play count:", err);
+  }
+};
   const getEpisodeId = (ep) => ep?.id ?? ep?.Id;
 
   useEffect(() => {
@@ -407,24 +422,27 @@ export default function MyEpisodesPage() {
                             marginTop: 14,
                           }}
                         >
-                          <audio
-                            ref={(el) => {
-                              const r = getAudioRef(id);
-                              r.current = el;
-                            }}
-                            onPlay={() => setIsPlayingById((p) => ({ ...p, [id]: true }))}
-                            onPause={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
-                            onTimeUpdate={(e) =>
-                              setCurrentTimeById((p) => ({ ...p, [id]: e.target.currentTime }))
-                            }
-                            onLoadedMetadata={(e) =>
-                              setDurationById((p) => ({ ...p, [id]: e.target.duration }))
-                            }
-                            onEnded={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
-                            style={{ display: "none" }}
-                          >
-                            <source src={src} />
-                          </audio>
+                         <audio
+  ref={(el) => {
+    const r = getAudioRef(id);
+    r.current = el;
+  }}
+  onPlay={() => {
+    setIsPlayingById((p) => ({ ...p, [id]: true }));
+    incrementPlayOnce(id);
+  }}
+  onPause={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
+  onTimeUpdate={(e) =>
+    setCurrentTimeById((p) => ({ ...p, [id]: e.target.currentTime }))
+  }
+  onLoadedMetadata={(e) =>
+    setDurationById((p) => ({ ...p, [id]: e.target.duration }))
+  }
+  onEnded={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
+  style={{ display: "none" }}
+>
+  <source src={src} />
+</audio>
 
                           <div style={{ marginBottom: 12 }}>
                             <input

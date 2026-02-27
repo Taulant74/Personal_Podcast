@@ -101,6 +101,7 @@ namespace PersonalPodcast.Controllers
                     e.DurationSeconds,
                     e.PublishedDate,
                     e.PlayCount,
+                    e.IsPremium, 
                     Categories = e.EpisodeCategories
                         .Where(ec => ec.Category != null)
                         .Select(ec => ec.Category!.Name)
@@ -113,10 +114,13 @@ namespace PersonalPodcast.Controllers
                 Id = e.Id,
                 Title = e.Title,
                 Description = e.Description,
-                AudioUrl = e.AudioUrl,
+
+                AudioUrl = e.IsPremium ? "" : e.AudioUrl,
+
                 DurationSeconds = e.DurationSeconds,
                 PublishedDate = e.PublishedDate,
                 PlayCount = e.PlayCount,
+                IsPremium = e.IsPremium, 
                 Categories = e.Categories.ToList()
             }).ToList();
 
@@ -145,6 +149,7 @@ namespace PersonalPodcast.Controllers
                     e.Season,
                     e.IsPublished,
                     e.PublishedDate,
+                    e.IsPremium, 
                     e.PlayCount,
                     e.CreatedAt,
                     Categories = e.EpisodeCategories
@@ -163,10 +168,13 @@ namespace PersonalPodcast.Controllers
                 Id = raw.Id,
                 Title = raw.Title,
                 Description = raw.Description,
+
                 AudioUrl = raw.AudioUrl,
+
                 DurationSeconds = raw.DurationSeconds,
                 Season = raw.Season,
                 IsPublished = raw.IsPublished,
+                IsPremium = raw.IsPremium, 
                 PublishedDate = raw.PublishedDate,
                 PlayCount = raw.PlayCount,
                 CreatedAt = raw.CreatedAt,
@@ -205,6 +213,7 @@ namespace PersonalPodcast.Controllers
                             e.DurationSeconds,
                             e.PublishedDate,
                             e.PlayCount,
+                            e.IsPremium, 
                             Categories = e.EpisodeCategories
                                 .Where(ec => ec.Category != null)
                                 .Select(ec => ec.Category!.Name)
@@ -225,7 +234,9 @@ namespace PersonalPodcast.Controllers
                 EpisodeId = x.TopEpisode!.Id,
                 Title = x.TopEpisode!.Title,
                 Description = x.TopEpisode!.Description,
+
                 AudioUrl = x.TopEpisode!.AudioUrl,
+
                 DurationSeconds = x.TopEpisode!.DurationSeconds,
                 PublishedDate = x.TopEpisode!.PublishedDate,
                 PlayCount = x.TopEpisode!.PlayCount,

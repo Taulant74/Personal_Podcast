@@ -35,6 +35,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     description: "",
     season: "",
     isPublished: true,
+    isPremium: false,
     file: null,
   });
 
@@ -102,6 +103,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
       description: episode.description || "",
       season: episode.season === null || episode.season === undefined ? "" : String(episode.season),
       isPublished: !!episode.isPublished,
+       isPremium: !!episode.isPremium, 
       file: null,
     });
 

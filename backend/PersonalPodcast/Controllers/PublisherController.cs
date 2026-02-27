@@ -85,18 +85,17 @@ public class PublisherController : ControllerBase
                 season = e.Season,
                 isPublished = e.IsPublished,
                 publishedDate = e.PublishedDate,
+                isPremium = e.IsPremium,
                 playCount = e.PlayCount,
                 createdAt = e.CreatedAt,
                 publisherId = e.PublisherId,
 
-                // ✅ for table
                 categories = e.EpisodeCategories
                     .Where(ec => ec.Category != null)
                     .Select(ec => ec.Category!.Name)
                     .Distinct()
                     .ToList(),
 
-                // ✅ for edit checkbox preload
                 categoryIds = e.EpisodeCategories
                     .Select(ec => ec.CategoryId)
                     .Distinct()
@@ -131,6 +130,7 @@ public class PublisherController : ControllerBase
             DurationSeconds = Math.Max(durationSeconds, 1),
             Season = request.season,
             IsPublished = request.isPublished,
+            IsPremium = request.isPremium,
             PublishedDate = request.isPublished ? DateTime.UtcNow : null,
             PlayCount = 0,
             CreatedAt = DateTime.UtcNow,
@@ -163,23 +163,21 @@ public class PublisherController : ControllerBase
         if (userId == null) return Unauthorized();
 
         var episode = await _db.Episodes
-            .Include(e => e.EpisodeCategories) // remove if you don't have categories relation
+            .Include(e => e.EpisodeCategories) 
             .FirstOrDefaultAsync(e => e.Id == id);
 
         if (episode == null) return NotFound("Episode not found.");
 
-        // ownership check (publishers only)
         if (!IsAdmin() && episode.PublisherId != userId)
             return Forbid();
 
-        // if you have join table and cascade isn't configured
         if (episode.EpisodeCategories != null && episode.EpisodeCategories.Count > 0)
             _db.Set<EpisodeCategory>().RemoveRange(episode.EpisodeCategories);
 
         _db.Episodes.Remove(episode);
         await _db.SaveChangesAsync();
 
-        return NoContent(); // 204
+        return NoContent(); 
     }
 
     [HttpPut("episodes/{id:int}")]
@@ -203,6 +201,7 @@ public class PublisherController : ControllerBase
         episode.Title = request.title.Trim();
         episode.Description = request.description;
         episode.Season = request.season;
+        episode.IsPremium = request.isPremium;
 
         if (!request.isPublished)
         {
