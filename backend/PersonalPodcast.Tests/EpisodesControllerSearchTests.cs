@@ -35,7 +35,7 @@ public class EpisodesControllerSearchTests
 
         var controller = new EpisodesController(db);
 
-        var request = new EpisodeSearchRequestDto { Q = "Prompting" };
+        var request = new EpisodeSearchRequestDto { Title = "Prompting" };
         var result = await controller.Search(request);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -43,42 +43,6 @@ public class EpisodesControllerSearchTests
 
         Assert.Single(body.Items);
         Assert.Contains("Prompting", body.Items[0].Title);
-    }
-
-    [Fact]
-    public async Task Search_ByDescription_FindsEpisode()
-    {
-        using var db = TestDbFactory.Create(nameof(Search_ByDescription_FindsEpisode));
-        Seed.EpisodesForSearch(db);
-
-        var controller = new EpisodesController(db);
-
-        var request = new EpisodeSearchRequestDto { Q = "Istanbul" };
-        var result = await controller.Search(request);
-
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
-
-        Assert.Single(body.Items);
-        Assert.Contains("Istanbul", body.Items[0].Title);
-    }
-
-    [Fact]
-    public async Task Search_ByCategoryName_FindsEpisode()
-    {
-        using var db = TestDbFactory.Create(nameof(Search_ByCategoryName_FindsEpisode));
-        Seed.EpisodesForSearch(db);
-
-        var controller = new EpisodesController(db);
-
-        var request = new EpisodeSearchRequestDto { Q = "Technology" };
-        var result = await controller.Search(request);
-
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
-
-        Assert.Single(body.Items);
-        Assert.Contains("Technology", body.Items[0].Categories);
     }
 
     [Fact]
@@ -96,5 +60,96 @@ public class EpisodesControllerSearchTests
         var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
 
         Assert.Equal(50, body.PageSize);
+    }
+
+    [Fact]
+    public async Task Search_ByCategoryId_FindsEpisode()
+    {
+        using var db = TestDbFactory.Create(nameof(Search_ByCategoryId_FindsEpisode));
+        Seed.EpisodesForSearch(db);
+
+        var controller = new EpisodesController(db);
+
+        var request = new EpisodeSearchRequestDto { CategoryId = 1 };
+        var result = await controller.Search(request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
+
+        Assert.Single(body.Items);
+        Assert.Contains("Technology", body.Items[0].Categories);
+    }
+
+    [Fact]
+    public async Task Search_PremiumEpisode_MasksAudioUrl()
+    {
+        using var db = TestDbFactory.Create(nameof(Search_PremiumEpisode_MasksAudioUrl));
+        Seed.EpisodesForSearch(db);
+
+        var controller = new EpisodesController(db);
+
+        var request = new EpisodeSearchRequestDto { Q = "Istanbul" };
+        var result = await controller.Search(request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
+
+        Assert.Single(body.Items);
+        Assert.True(body.Items[0].IsPremium);
+        Assert.Equal("", body.Items[0].AudioUrl);
+    }
+
+    [Fact]
+    public async Task Search_Page_And_PageSize_AreNormalized_WhenInvalid()
+    {
+        using var db = TestDbFactory.Create(nameof(Search_Page_And_PageSize_AreNormalized_WhenInvalid));
+        Seed.EpisodesForSearch(db);
+
+        var controller = new EpisodesController(db);
+
+        var request = new EpisodeSearchRequestDto { Page = 0, PageSize = 0 };
+        var result = await controller.Search(request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
+
+        Assert.Equal(1, body.Page);
+        Assert.Equal(10, body.PageSize);
+    }
+
+    [Fact]
+    public async Task Search_SortByPlayCount_Asc_Works()
+    {
+        using var db = TestDbFactory.Create(nameof(Search_SortByPlayCount_Asc_Works));
+        Seed.EpisodesForSearch(db);
+
+        var controller = new EpisodesController(db);
+
+        var request = new EpisodeSearchRequestDto { SortBy = "playCount", SortDir = "asc" };
+        var result = await controller.Search(request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
+
+        Assert.Equal(2, body.Items.Count);
+        Assert.True(body.Items[0].PlayCount <= body.Items[1].PlayCount);
+    }
+
+    [Fact]
+    public async Task Search_Q_ByPublisherUsername_FindsEpisode()
+    {
+        using var db = TestDbFactory.Create(nameof(Search_Q_ByPublisherUsername_FindsEpisode));
+        Seed.EpisodesForSearch(db);
+
+        var controller = new EpisodesController(db);
+
+        var request = new EpisodeSearchRequestDto { Q = "johnny" };
+        var result = await controller.Search(request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<PagedResultDto<EpisodeSearchItemDto>>(ok.Value);
+
+        Assert.Single(body.Items);
+        Assert.Contains("Prompting", body.Items[0].Title);
     }
 }
