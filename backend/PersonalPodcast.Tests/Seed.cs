@@ -11,6 +11,32 @@ public static class Seed
         var travel = new Category { Id = 2, Name = "Travel" };
         db.Categories.AddRange(tech, travel);
 
+        var u1 = new User
+        {
+            Id = 1,
+            Username = "johnny",
+            FirstName = "John",
+            LastName = "Doe",
+            PasswordHash = "x",
+            PasswordSalt = "y",
+            Role = "Publisher",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var u2 = new User
+        {
+            Id = 2,
+            Username = "sara",
+            FirstName = "Sara",
+            LastName = "Smith",
+            PasswordHash = "x",
+            PasswordSalt = "y",
+            Role = "Publisher",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.Users.AddRange(u1, u2);
+
         var e1 = new Episode
         {
             Id = 1,
@@ -19,8 +45,10 @@ public static class Seed
             AudioUrl = "https://example.com/a.mp3",
             DurationSeconds = 1000,
             IsPublished = true,
+            IsPremium = false,
             PublishedDate = new DateTime(2026, 2, 1),
             PlayCount = 120,
+            PublisherId = 1,
             CreatedAt = new DateTime(2026, 1, 20)
         };
 
@@ -32,8 +60,10 @@ public static class Seed
             AudioUrl = "https://example.com/t.mp3",
             DurationSeconds = 1200,
             IsPublished = true,
+            IsPremium = true,
             PublishedDate = new DateTime(2026, 2, 18),
             PlayCount = 52,
+            PublisherId = 2,
             CreatedAt = new DateTime(2026, 2, 10)
         };
 
@@ -47,6 +77,7 @@ public static class Seed
             IsPublished = false,
             PublishedDate = null,
             PlayCount = 0,
+            PublisherId = 1,
             CreatedAt = new DateTime(2026, 2, 5)
         };
 
