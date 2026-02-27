@@ -35,7 +35,7 @@ public class EpisodesControllerSearchTests
 
         var controller = new EpisodesController(db);
 
-        var request = new EpisodeSearchRequestDto { Q = "Prompting" };
+        var request = new EpisodeSearchRequestDto { Title = "Prompting" };
         var result = await controller.Search(request);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
