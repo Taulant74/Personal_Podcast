@@ -515,10 +515,10 @@ const openPlayer = (episode) => {
 `}</style>
 
       <div
-        className="container pp-container px-5"
+        className="container pp-container px-5 mb-5"
        style={{ backgroundColor: "#37353E", color: "#D3DAD9" }}
       >
-        <div className="pp-hero">
+        <div className="pp-hero text-main">
           <h1 className="pp-title">All episodes. One place.</h1>
           <p className="pp-subtitle">
             Browse your entire library and press play instantly - now with
@@ -1041,25 +1041,24 @@ const openPlayer = (episode) => {
       </button>
     );
   }
-  
-  return (
-    <button
-      className="btn pp-glass"
-      onClick={() => (window.location.href = `/order/${id}`)}
-      style={{
-        width: "100%",
-        color: "rgba(233,238,252,0.92)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        fontWeight: 800,
-        borderRadius: 999,
-        padding: "10px 14px",
-        cursor: "pointer",
-      }}
-    >
-      🔒 Order to Unlock
-    </button>
-  );
-}
+              return (
+                  <button
+                    className="btn pp-glass"
+                    onClick={() => (window.location.href = `/order/${id}`)}
+                    style={{
+                      width: "100%",
+                      color: "rgba(233,238,252,0.92)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      fontWeight: 800,
+                      borderRadius: 999,
+                      padding: "10px 14px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    🔒 Order to Unlock
+                  </button>
+                );
+              }
               if (access.state === "owned") {
                 const src =
                   access.episode?.audioUrl ?? access.episode?.AudioUrl;
@@ -1077,9 +1076,9 @@ const openPlayer = (episode) => {
                     <audio
                       ref={audioRef}
                       onPlay={() => {
-  setIsPlaying(true);
-  incrementPlayOnce(id);
-}}
+                        setIsPlaying(true);
+                        incrementPlayOnce(id);
+                      }}
                       onPause={() => setIsPlaying(false)}
                       onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
                       onLoadedMetadata={(e) => setDuration(e.target.duration)}

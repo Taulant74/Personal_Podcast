@@ -16,6 +16,7 @@ import AboutPage from "./pages/AboutPage";
 import HelpPage from "./pages/HelpPage";
 import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
+import NoPage from "./pages/NoPage";
 
 function App() {
   return (
@@ -26,32 +27,35 @@ function App() {
           <Header />
           {/* Faqet */}
           <Routes>
+
+            {/* Loggedin ose Logged Out */}
             <Route path="/" element={<HomePage />} />
             <Route path="/order/:episodeId" element={<OrderPage />} />
             <Route path="/episodes" element={<EpisodePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/help" element={<HelpPage />} />
 
+            <Route path="/*" element={<NoPage />} />
+
+            {/* Loggedin paqare */}
             <Route element={<ProtectedRoute />}>
+              <Route element={<RequireRole allowedRoles={["Admin"]} />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+              </Route>
+              <Route
+                element={<RequireRole allowedRoles={["Publisher", "Admin"]} />}
+              >
+                <Route path="/publisher" element={<PublisherDashboard />} />
+              </Route>
               <Route path="/user-panel" element={<UserPanelPage />} />
               <Route path="/my-episodes" element={<MyEpisodesPage />} />
             </Route>
 
-            <Route element={<RequireRole allowedRoles={["Admin"]} />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-            </Route>
-
-            <Route
-              element={<RequireRole allowedRoles={["Publisher", "Admin"]} />}
-            >
-              <Route path="/publisher" element={<PublisherDashboard />} />
-            </Route>
-
+            {/* Logged out paqare */}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
             </Route>
-            
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/help" element={<HelpPage />} />
           </Routes>
         </div>
       </Router>

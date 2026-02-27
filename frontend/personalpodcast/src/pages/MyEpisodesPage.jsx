@@ -342,9 +342,9 @@ export default function MyEpisodesPage() {
         }
       `}</style>
 
-      <div className="container pp-container px-5" style={{ backgroundColor: "#37353E" }}>
+      <div className="container pp-container px-5 mb-5" style={{ backgroundColor: "#37353E" }}>
         <div className="pp-hero">
-          <h1 className="pp-title">My episodes</h1>
+          <h1 className="pp-title text-main">My episodes</h1>
           <p className="pp-subtitle">Everything you’ve ordered — ready to play.</p>
         </div>
 
