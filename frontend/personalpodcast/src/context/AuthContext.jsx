@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { jwtDecode } from "jwt-decode";
 import { apiUrl } from "../config/api";
+import { Navigate } from "react-router-dom";
 
 const AuthContext = createContext(null);
 
@@ -138,7 +139,7 @@ const authFetch = async (url, options = {}) => {
 
   let response = await fetch(url, fetchOptions);
 
-  if (response.status === 401) {
+  if (response.status === 401 || response.status === 403) {
     const newToken = await refreshAccessToken();
 
     if (!newToken) {

@@ -1,3 +1,17 @@
+:root {
+  --pp-text-main: #D3DAD9;
+  --pp-button-bg: #DDA853;
+}
+
+.text-main {
+  color: var(--pp-text-main) !important;
+}
+
+.button-main {
+  background-color: var(--pp-button-bg) !important;
+  color: #37353E !important;
+}
+
 .App {
   text-align: center;
 }
@@ -6,7 +20,6 @@ html, body, #root {
   background-color: #37353E;
 }
 
-/* dark page background */
 body {
   background-color: #37353E;
 }
