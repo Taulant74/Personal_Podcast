@@ -8,6 +8,7 @@
         public string? Description { get; set; }
         public string AudioUrl { get; set; } = string.Empty;
         public int DurationSeconds { get; set; }
+        public bool IsPremium { get; set; }
         public DateTime? PublishedDate { get; set; }
         public int PlayCount { get; set; }
         public List<string> Categories { get; set; } = new();

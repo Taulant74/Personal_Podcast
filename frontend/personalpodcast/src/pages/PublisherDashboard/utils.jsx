@@ -1,21 +1,10 @@
-
-export const emptyCreateEpisode = {
+ export const emptyCreateEpisode = {
   title: "",
   description: "",
   season: "",
   isPublished: true,
   isPremium: false, 
   file: null,
-};
-
-export const emptyCreateUser = {
-  username: "",
-  firstName: "",
-  lastName: "",
-  age: "",
-  email: "",
-  role: "User",
-  password: "",
 };
 
 export function formatDate(d) {
@@ -33,7 +22,7 @@ export function secondsToMinSec(seconds) {
   return m > 0 ? `${m}m ${r}s` : `${r}s`;
 }
 
-export function getEpisodeCategoryLabels(e, categories) {
+export function getEpisodeCategoryLabels(e, categories = []) {
   const idToName = new Map((categories || []).map((c) => [c.id, c.name]));
 
   const pickName = (obj) =>
@@ -45,10 +34,8 @@ export function getEpisodeCategoryLabels(e, categories) {
     obj?.Title ??
     obj?.category?.name ??
     obj?.category?.Name ??
-    obj?.category?.title ??
     obj?.Category?.name ??
     obj?.Category?.Name ??
-    obj?.Category?.title ??
     null;
 
   const pickId = (obj) =>
@@ -65,28 +52,37 @@ export function getEpisodeCategoryLabels(e, categories) {
     null;
 
   if (Array.isArray(e?.categories) && e.categories.length) {
-    if (typeof e.categories[0] === "string") return e.categories;
-    if (typeof e.categories[0] === "number") {
-      return e.categories.map((id) => idToName.get(id)).filter(Boolean);
-    }
+    if (typeof e.categories[0] === "string") return e.categories.filter(Boolean);
+    if (typeof e.categories[0] === "number") return e.categories.map((id) => idToName.get(id)).filter(Boolean);
+
     const names = e.categories.map(pickName).filter(Boolean);
     if (names.length) return names;
+
+    const ids = e.categories.map(pickId).filter((v) => typeof v === "number");
+    if (ids.length) return ids.map((id) => idToName.get(id)).filter(Boolean);
   }
 
   const ecs = Array.isArray(e?.episodeCategories) ? e.episodeCategories : [];
-  if (!ecs.length) return [];
+  if (ecs.length) {
+    if (typeof ecs[0] === "string") return ecs.filter(Boolean);
+    if (typeof ecs[0] === "number") return ecs.map((id) => idToName.get(id)).filter(Boolean);
 
-  if (typeof ecs[0] === "string") return ecs.filter(Boolean);
+    const names = ecs.map(pickName).filter(Boolean);
+    if (names.length) return names;
 
-  if (typeof ecs[0] === "number") {
-    return ecs.map((id) => idToName.get(id)).filter(Boolean);
+    const ids = ecs.map(pickId).filter((v) => typeof v === "number");
+    if (ids.length) return ids.map((id) => idToName.get(id)).filter(Boolean);
   }
 
-  const names = ecs.map(pickName).filter(Boolean);
-  if (names.length) return names;
+  const idList =
+    (Array.isArray(e?.categoryIds) && e.categoryIds) ||
+    (Array.isArray(e?.categoryIDs) && e.categoryIDs) ||
+    (Array.isArray(e?.categoriesIds) && e.categoriesIds) ||
+    [];
 
-  const ids = ecs.map(pickId).filter((v) => typeof v === "number");
-  if (ids.length) return ids.map((id) => idToName.get(id)).filter(Boolean);
+  if (idList.length && typeof idList[0] === "number") {
+    return idList.map((id) => idToName.get(id)).filter(Boolean);
+  }
 
   return [];
 }

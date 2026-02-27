@@ -7,6 +7,7 @@ namespace PersonalPodcast.DTOs.Episodes
         public string? categoryIds { get; set; }
         public int? season { get; set; }
         public bool isPublished { get; set; }
+        public bool isPremium { get; set; } = false;
         public IFormFile file { get; set; } = default!;
     }
 }

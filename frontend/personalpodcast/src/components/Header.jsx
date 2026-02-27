@@ -58,7 +58,7 @@ function Header() {
           className="desktop-only logo-container"
         >
           <h1><i class="bi bi-mic-fill"></i></h1>
-          <h3>Personal Podcast</h3>
+          <h3>Gjirafa Podcast</h3>
         </Link>
       </div>
 

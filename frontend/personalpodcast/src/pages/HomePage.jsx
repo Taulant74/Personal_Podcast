@@ -3,7 +3,7 @@ import React from 'react'
 function HomePage() {
   return (
     <div>
-      <h1>Welcome to Personal Podcast</h1>
+      <h1>Welcome to Gjirafa Podcast</h1>
     </div>
   )
 }

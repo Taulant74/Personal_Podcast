@@ -215,6 +215,7 @@ namespace PersonalPodcast.Controllers
                 durationSeconds = episode.DurationSeconds,
                 season = episode.Season,
                 isPublished = episode.IsPublished,
+                isPremium = episode.IsPremium,
                 publishedDate = episode.PublishedDate,
                 playCount = episode.PlayCount,
                 createdAt = episode.CreatedAt,
@@ -245,6 +246,7 @@ namespace PersonalPodcast.Controllers
                     season = e.Season,
                     isPublished = e.IsPublished,
                     publishedDate = e.PublishedDate,
+                    isPremium = e.IsPremium,
                     playCount = e.PlayCount,
                     createdAt = e.CreatedAt,
                     categories = e.EpisodeCategories
@@ -258,9 +260,6 @@ namespace PersonalPodcast.Controllers
             return Ok(episodes);
         }
 
-        // -----------------------------
-        // FIXED FOR SWAGGER (multipart)
-        // -----------------------------
         [HttpPost("episodes")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Upload([FromForm] CreateEpisodeFormRequest request)
@@ -295,6 +294,7 @@ namespace PersonalPodcast.Controllers
                 DurationSeconds = Math.Max(durationSeconds, 1),
                 Season = request.Season,
                 IsPublished = request.IsPublished,
+                IsPremium = request.IsPremium,
                 PublishedDate = request.IsPublished ? DateTime.UtcNow : null,
                 PlayCount = 0,
                 CreatedAt = DateTime.UtcNow
@@ -338,6 +338,7 @@ namespace PersonalPodcast.Controllers
             episode.Title = request.Title.Trim();
             episode.Description = request.Description;
             episode.Season = request.Season;
+            episode.IsPremium = request.IsPremium;
 
             if (!request.IsPublished)
             {

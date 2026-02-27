@@ -149,22 +149,32 @@ export default function EpisodePage() {
       console.error("Failed to increment play count:", err);
     }
   };
+const openPlayer = (episode) => {
+  setActiveEpisode(episode);
+  setPlayerOpen(true);
+  setCurrentTime(0);
+  setIsPlaying(false);
 
-  const openPlayer = (episode) => {
-    setActiveEpisode(episode);
-    setPlayerOpen(true);
-    setCurrentTime(0);
-    setIsPlaying(false);
-    incrementPlayOnce(episode.id ?? episode.Id);
-    const id = getEpisodeId(episode);
-    if (id) {
-      setAccessByEpisodeId((prev) => ({
-        ...prev,
-        [id]: { state: "loading" },
-      }));
-      fetchAccess(id);
-    }
-  };
+  const id = getEpisodeId(episode);
+  if (!id) return;
+
+  const isPremium = episode?.isPremium ?? episode?.IsPremium ?? false;
+
+  if (isPremium) {
+    setAccessByEpisodeId((prev) => ({
+      ...prev,
+      [id]: { state: "loading" },
+    }));
+    fetchAccess(id);
+    return;
+  }
+
+  const audioUrl = episode?.audioUrl ?? episode?.AudioUrl ?? null;
+  setAccessByEpisodeId((prev) => ({
+    ...prev,
+    [id]: { state: "owned", episode: { ...episode, audioUrl } },
+  }));
+};
 
   const closePlayer = () => {
     if (audioRef.current) {
@@ -335,218 +345,183 @@ export default function EpisodePage() {
   return (
     <div>
       <style>{`
-      .cap-expanded{
-  width: 100%;
-}
+  .pp-container { max-width: 1120px; }
 
-.cap-skip-row{
-  display:flex;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-}
+  .pp-hero { padding: 40px 0 20px; }
 
-.cap-skip{
-  flex:1;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.08);
-  color: rgba(233,238,252,0.9);
-  font-weight: 800;
-  font-size: 12px;
-  padding: 6px 10px;
-  transition: background .15s ease, transform .15s ease;
-  cursor: pointer;
-}
+  .pp-title {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.05;
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin: 0;
+    color: #ffffff;
+  }
 
-.cap-skip:hover{
-  background: rgba(255,255,255,0.14);
-  transform: translateY(-1px);
-}
-      .cap{
-  width: 56px;
-  height: 44px;
-  border-radius: 999px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background: rgba(0,0,0,0.26);
-  border: 1px solid rgba(255,255,255,0.12);
-  transition: width 220ms ease, border-radius 220ms ease;
-  overflow: hidden;
-}
-.cap--expanded{
-  width: 100%;
-  border-radius: 16px;
-  padding: 8px;
-  justify-content: flex-start;
-}
-.cap-btn{
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(255,255,255,0.10);
-  color: rgba(233,238,252,0.95);
-  font-weight: 900;
-  cursor: pointer;
-}
-.cap-btn:hover{
-  background: rgba(255,255,255,0.14);
-}
+  .pp-subtitle {
+    margin-top: 10px;
+    color: #B8C1BF;
+    max-width: 58ch;
+    font-size: 1.05rem;
+  }
+
+  .pp-glass {
+    background: linear-gradient(135deg, rgba(107,91,123,0.15), rgba(68,68,78,0.15));
+    border: 1px solid rgba(107,91,123,0.3);
+    border-radius: 12px;
+  }
+
+  .pp-muted { color: #B8C1BF; }
+
+  .pp-badge {
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-weight: 700;
+    font-size: 12px;
+    background: rgba(107,91,123,0.2);
+    border: 1px solid rgba(107,91,123,0.4);
+    color: #D3DAD9;
+  }
+
+  .pp-epCard {
+    background: linear-gradient(135deg, rgba(107,91,123,0.2), rgba(68,68,78,0.2));
+    border: 1px solid rgba(107,91,123,0.3);
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
+  }
+  .pp-epCard:hover {
+    transform: translateY(-5px);
+    border-color: rgba(107,91,123,0.6);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+  }
+
+  .pp-cardTop {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .pp-epTitle {
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    margin: 0;
+    font-size: 1.1rem;
+    color: #ffffff;
+  }
+
+  .pp-epDesc {
+    margin-top: 8px;
+    color: #B8C1BF;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.9rem;
+  }
+
+  .pp-metaRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .pp-audioWrap {
+    margin-top: 14px;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(107,91,123,0.3);
+  }
+
   audio {
-  width: 100%;
-  border-radius: 12px;
+    width: 100%;
+    border-radius: 8px;
+    filter: invert(1) hue-rotate(180deg) brightness(0.9);
+  }
 
-  filter: invert(1) hue-rotate(180deg) brightness(0.9);
-}
-.cap-audio{
-  width: 100%;
-  border-radius: 12px;
-}
-        .pp-container{ max-width: 1120px; }
+  .pp-link {
+    text-decoration: none;
+    color: #D3DAD9;
+    background: rgba(107,91,123,0.2);
+    border: 1px solid rgba(107,91,123,0.4);
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+    transition: transform 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+  }
+  .pp-link:hover {
+    transform: translateY(-1px);
+    background: rgba(107,91,123,0.35);
+    color: #fff;
+  }
 
-        .pp-hero{ padding: 26px 0 12px; }
-        .pp-title{
-          font-weight: 900;
-          letter-spacing: -0.6px;
-          line-height: 1.02;
-          font-size: clamp(2.1rem, 4vw, 3.2rem);
-          margin: 0;
-        }
-        .pp-subtitle{
-          margin-top: 10px;
-          color: rgba(233,238,252,0.78);
-          max-width: 58ch;
-          font-size: 1.05rem;
-        }
+  .pp-alert {
+    background: rgba(68,68,78,0.4);
+    border: 1px solid rgba(107,91,123,0.3);
+    color: #B8C1BF;
+    border-radius: 10px;
+  }
 
-        .pp-glass{
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.12);
-          box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-          backdrop-filter: blur(14px);
-          border-radius: 18px;
-        }
+  .pp-skeleton {
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(68,68,78,0.6), rgba(107,91,123,0.3), rgba(68,68,78,0.6));
+    background-size: 200% 100%;
+    animation: shimmer 1.3s infinite linear;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 
-        .pp-muted{ color: rgba(233,238,252,0.72); }
+  .pp-footer {
+    color: #B8C1BF;
+    border-top: 1px solid rgba(107,91,123,0.3);
+    background: rgba(68,68,78,0.3);
+  }
 
-        .pp-badge{
-          border-radius: 999px;
-          padding: 7px 10px;
-          font-weight: 800;
-          font-size: 12px;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: rgba(233,238,252,0.88);
-        }
+  .pp-search-input::placeholder {
+    color: #B8C1BF !important;
+    opacity: 1;
+  }
 
-        .pp-epCard{
-          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-          overflow: hidden;
-        }
-        .pp-epCard:hover{
-          transform: translateY(-4px);
-          border-color: rgba(255,255,255,0.20);
-          box-shadow: 0 24px 70px rgba(0,0,0,0.45);
-        }
-
-        .pp-cardTop{
-          display:flex;
-          justify-content:space-between;
-          gap: 14px;
-          align-items:flex-start;
-        }
-        .pp-epTitle{
-          font-weight: 900;
-          letter-spacing: -0.3px;
-          margin: 0;
-          font-size: 1.1rem;
-        }
-        .pp-epDesc{
-          margin-top: 10px;
-          color: rgba(233,238,252,0.78);
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        .pp-metaRow{
-          display:flex;
-          flex-wrap:wrap;
-          gap: 8px;
-          margin-top: 12px;
-        }
-
-        .pp-audioWrap{
-          margin-top: 14px;
-          padding: 10px;
-          border-radius: 14px;
-          background: rgba(0,0,0,0.22);
-          border: 1px solid rgba(255,255,255,0.10);
-        }
-        audio{ width: 100%; border-radius: 12px; }
-
-        .pp-link{
-          text-decoration: none;
-          color: rgba(233,238,252,0.92);
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.12);
-          padding: 8px 10px;
-          border-radius: 999px;
-          font-weight: 800;
-          font-size: 12px;
-          transition: transform .15s ease, background .15s ease;
-          white-space: nowrap;
-        }
-        .pp-link:hover{
-          transform: translateY(-1px);
-          background: rgba(255,255,255,0.12);
-          color: #fff;
-        }
-
-        .pp-alert{
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: rgba(233,238,252,0.85);
-          border-radius: 14px;
-        }
-
-        .pp-skeleton{
-          height: 14px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.16), rgba(255,255,255,0.08));
-          background-size: 200% 100%;
-          animation: shimmer 1.15s infinite linear;
-        }
-        @keyframes shimmer{
-          0%{ background-position: 200% 0; }
-          100%{ background-position: -200% 0; }
-        }
-
-        .pp-footer{
-          color: rgba(233,238,252,0.55);
-          border-top: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.04);
-          backdrop-filter: blur(12px);
-        }
-
-        .pp-search-input::placeholder{
-          color: rgba(233,238,252,0.65) !important;
-          opacity: 1;
-        }
-          
-      `}</style>
+  .cap-skip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .cap-skip {
+    flex: 1;
+    border-radius: 999px;
+    border: 1px solid rgba(107,91,123,0.4);
+    background: rgba(107,91,123,0.15);
+    color: #D3DAD9;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 6px 10px;
+    transition: background 0.15s ease, transform 0.15s ease;
+    cursor: pointer;
+  }
+  .cap-skip:hover {
+    background: rgba(107,91,123,0.3);
+    transform: translateY(-1px);
+  }
+`}</style>
 
       <div
         className="container pp-container px-5"
-        style={{ backgroundColor: "#37353E" }}
+       style={{ backgroundColor: "#37353E", color: "#D3DAD9" }}
       >
         <div className="pp-hero">
           <h1 className="pp-title">All episodes. One place.</h1>
           <p className="pp-subtitle">
-            Browse your entire library and press play instantly — now with
+            Browse your entire library and press play instantly - now with
             search.
           </p>
         </div>
@@ -754,6 +729,13 @@ export default function EpisodePage() {
                     </div>
 
                     <div className="pp-metaRow">
+                      <span className="pp-badge" style={
+  (ep.isPremium ?? ep.IsPremium)
+    ? { background: "rgba(221,168,83,0.15)", borderColor: "rgba(221,168,83,0.4)", color: "#DDA853" }
+    : { background: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.3)", color: "#4ade80" }
+}>
+  {(ep.isPremium ?? ep.IsPremium) ? "🔒 Premium" : "🆓 Free"}
+</span>
                       {renderCategories(ep)}
                       {(ep.season ?? ep.Season) != null && (
                         <span className="pp-badge">
@@ -1014,26 +996,70 @@ export default function EpisodePage() {
                 );
               }
 
-              if (access.state === "not_owned") {
-                return (
-                  <button
-                    className="btn pp-glass"
-                    onClick={() => (window.location.href = `/order/${id}`)}
-                    style={{
-                      width: "100%",
-                      color: "rgba(233,238,252,0.92)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      fontWeight: 800,
-                      borderRadius: 999,
-                      padding: "10px 14px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Order
-                  </button>
-                );
-              }
+            if (access.state === "not_owned") {
+  const isPremium =
+    activeEpisode?.isPremium ?? activeEpisode?.IsPremium ?? false;
 
+  const audioUrl =
+    activeEpisode?.audioUrl ?? activeEpisode?.AudioUrl ?? null;
+
+  if (!isPremium) {
+    return (
+      <button
+        className="btn pp-glass"
+        onClick={() => {
+          if (!audioUrl) {
+            console.error("No audio URL available.");
+            return;
+          }
+
+          setAccessByEpisodeId((prev) => ({
+            ...prev,
+            [id]: { state: "owned", episode: { ...activeEpisode, audioUrl } },
+          }));
+
+          requestAnimationFrame(() => {
+            if (audioRef.current) {
+              audioRef.current.src = audioUrl;
+              audioRef.current.play().catch(() => {});
+            }
+          });
+
+          incrementPlayOnce(id);
+        }}
+        style={{
+          width: "100%",
+          color: "rgba(233,238,252,0.92)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          fontWeight: 800,
+          borderRadius: 999,
+          padding: "10px 14px",
+          cursor: "pointer",
+        }}
+      >
+        ▶ Play (Free)
+      </button>
+    );
+  }
+  
+  return (
+    <button
+      className="btn pp-glass"
+      onClick={() => (window.location.href = `/order/${id}`)}
+      style={{
+        width: "100%",
+        color: "rgba(233,238,252,0.92)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        fontWeight: 800,
+        borderRadius: 999,
+        padding: "10px 14px",
+        cursor: "pointer",
+      }}
+    >
+      🔒 Order to Unlock
+    </button>
+  );
+}
               if (access.state === "owned") {
                 const src =
                   access.episode?.audioUrl ?? access.episode?.AudioUrl;
@@ -1050,7 +1076,10 @@ export default function EpisodePage() {
                   >
                     <audio
                       ref={audioRef}
-                      onPlay={() => setIsPlaying(true)}
+                      onPlay={() => {
+  setIsPlaying(true);
+  incrementPlayOnce(id);
+}}
                       onPause={() => setIsPlaying(false)}
                       onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
                       onLoadedMetadata={(e) => setDuration(e.target.duration)}
