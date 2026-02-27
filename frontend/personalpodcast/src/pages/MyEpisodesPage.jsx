@@ -43,12 +43,6 @@ export default function MyEpisodesPage() {
     let cancelled = false;
 
     const loadMyEpisodes = async () => {
-      if (!isLoggedIn) {
-        setEpisodes([]);
-        setMsg("Please log in to see your ordered episodes.");
-        return;
-      }
-
       try {
         setLoading(true);
         setMsg("Loading your episodes...");
@@ -423,26 +417,26 @@ export default function MyEpisodesPage() {
                           }}
                         >
                          <audio
-  ref={(el) => {
-    const r = getAudioRef(id);
-    r.current = el;
-  }}
-  onPlay={() => {
-    setIsPlayingById((p) => ({ ...p, [id]: true }));
-    incrementPlayOnce(id);
-  }}
-  onPause={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
-  onTimeUpdate={(e) =>
-    setCurrentTimeById((p) => ({ ...p, [id]: e.target.currentTime }))
-  }
-  onLoadedMetadata={(e) =>
-    setDurationById((p) => ({ ...p, [id]: e.target.duration }))
-  }
-  onEnded={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
-  style={{ display: "none" }}
->
-  <source src={src} />
-</audio>
+                            ref={(el) => {
+                              const r = getAudioRef(id);
+                              r.current = el;
+                            }}
+                            onPlay={() => {
+                              setIsPlayingById((p) => ({ ...p, [id]: true }));
+                              incrementPlayOnce(id);
+                            }}
+                            onPause={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
+                            onTimeUpdate={(e) =>
+                              setCurrentTimeById((p) => ({ ...p, [id]: e.target.currentTime }))
+                            }
+                            onLoadedMetadata={(e) =>
+                              setDurationById((p) => ({ ...p, [id]: e.target.duration }))
+                            }
+                            onEnded={() => setIsPlayingById((p) => ({ ...p, [id]: false }))}
+                            style={{ display: "none" }}
+                          >
+                            <source src={src} />
+                          </audio>
 
                           <div style={{ marginBottom: 12 }}>
                             <input

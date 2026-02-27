@@ -14,6 +14,8 @@ import OrderPage from './pages/OrderPage';
 import MyEpisodesPage from './pages/MyEpisodesPage';
 import AboutPage from "./pages/AboutPage";
 import HelpPage from "./pages/HelpPage";
+import PublicRoute from "./components/PublicRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -26,9 +28,13 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/order/:episodeId" element={<OrderPage />} />
-            <Route path="/user-panel" element={<UserPanelPage />} />
-            <Route path="/my-episodes" element={<MyEpisodesPage />} />
             <Route path="/episodes" element={<EpisodePage />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/user-panel" element={<UserPanelPage />} />
+              <Route path="/my-episodes" element={<MyEpisodesPage />} />
+            </Route>
+
             <Route element={<RequireRole allowedRoles={["Admin"]} />}>
               <Route path="/admin" element={<AdminDashboard />} />
             </Route>
@@ -38,8 +44,12 @@ function App() {
             >
               <Route path="/publisher" element={<PublisherDashboard />} />
             </Route>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+            </Route>
+            
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />
           </Routes>
