@@ -1,8 +1,20 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE, apiUrl } from "../config/api";
 
+import "../components/episodes/episodeStyles.css";
+
+import EpisodeFilters from "../components/episodes/EpisodeFilters";
+import EpisodePagination from "../components/episodes/EpisodePagination";
+import EpisodeSkeleton from "../components/episodes/EpisodeSkeleton";
+import EpisodeCard from "../components/episodes/EpisodeCard";
+import EpisodePlayerModal from "../components/episodes/EpisodePlayerModal";
+
+import {
+  formatDuration,
+  getEpisodeId,
+} from "../components/episodes/episodeHelpers";
 
 export default function EpisodePage() {
   const api = useMemo(() => {
@@ -41,8 +53,6 @@ export default function EpisodePage() {
 
   const [accessByEpisodeId, setAccessByEpisodeId] = useState({});
 
-  const getEpisodeId = (ep) => ep?.id ?? ep?.Id;
-
   const fetchAccess = async (episodeId) => {
     const res = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`), {
       method: "GET",
@@ -79,49 +89,8 @@ export default function EpisodePage() {
     }));
   };
 
-  const orderEpisode = async (episodeId) => {
-    const res = await authFetch(apiUrl("/api/orders"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ episodeId }),
-    });
-
-    if (res.status === 200) {
-      await fetchAccess(episodeId);
-      const owned = accessByEpisodeId[episodeId]?.state === "owned";
-      if (!owned) {
-        const check = await authFetch(
-          apiUrl(`/api/orders/episodes/${episodeId}`),
-          {
-            method: "GET",
-          },
-        );
-        if (check.status === 200) {
-          const data = await check.json();
-          setAccessByEpisodeId((prev) => ({
-            ...prev,
-            [episodeId]: { state: "owned", episode: data },
-          }));
-          openPlayer(data);
-        }
-      } else {
-        openPlayer(accessByEpisodeId[episodeId].episode);
-      }
-      return;
-    }
-
-    if (res.status === 401) {
-      setAccessByEpisodeId((prev) => ({
-        ...prev,
-        [episodeId]: { state: "not_logged_in" },
-      }));
-      return;
-    }
-  };
-
   const incrementPlayOnce = async (episodeId) => {
     if (!episodeId) return;
-
     if (countedPlaysRef.current.has(episodeId)) return;
 
     countedPlaysRef.current.add(episodeId);
@@ -149,42 +118,46 @@ export default function EpisodePage() {
       console.error("Failed to increment play count:", err);
     }
   };
-const openPlayer = (episode) => {
-  setActiveEpisode(episode);
-  setPlayerOpen(true);
-  setCurrentTime(0);
-  setIsPlaying(false);
 
-  const id = getEpisodeId(episode);
-  if (!id) return;
+  const openPlayer = (episode) => {
+    setActiveEpisode(episode);
+    setPlayerOpen(true);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
 
-  const isPremium = episode?.isPremium ?? episode?.IsPremium ?? false;
+    const id = getEpisodeId(episode);
+    if (!id) return;
 
-  if (isPremium) {
+    const isPremium = episode?.isPremium ?? episode?.IsPremium ?? false;
+
+    if (isPremium) {
+      setAccessByEpisodeId((prev) => ({
+        ...prev,
+        [id]: { state: "loading" },
+      }));
+      fetchAccess(id);
+      return;
+    }
+
+    const audioUrl = episode?.audioUrl ?? episode?.AudioUrl ?? null;
     setAccessByEpisodeId((prev) => ({
       ...prev,
-      [id]: { state: "loading" },
+      [id]: { state: "owned", episode: { ...episode, audioUrl } },
     }));
-    fetchAccess(id);
-    return;
-  }
-
-  const audioUrl = episode?.audioUrl ?? episode?.AudioUrl ?? null;
-  setAccessByEpisodeId((prev) => ({
-    ...prev,
-    [id]: { state: "owned", episode: { ...episode, audioUrl } },
-  }));
-};
+  };
 
   const closePlayer = () => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+
     setPlayerOpen(false);
     setActiveEpisode(null);
     setIsPlaying(false);
     setCurrentTime(0);
+    setDuration(0);
     setPlaybackRate(1);
   };
 
@@ -205,15 +178,47 @@ const openPlayer = (episode) => {
   };
 
   const togglePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play().catch(() => {});
-        setIsPlaying(true);
-      }
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch(() => {});
+      setIsPlaying(true);
     }
+  };
+
+  const handleFreePlay = (episode) => {
+    const id = getEpisodeId(episode);
+    const audioUrl = episode?.audioUrl ?? episode?.AudioUrl ?? null;
+
+    if (!id) return;
+
+    if (!audioUrl) {
+      console.error("No audio URL available.");
+      return;
+    }
+
+    setAccessByEpisodeId((prev) => ({
+      ...prev,
+      [id]: { state: "owned", episode: { ...episode, audioUrl } },
+    }));
+
+    requestAnimationFrame(() => {
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.play().catch(() => {});
+      }
+    });
+
+    incrementPlayOnce(id);
+  };
+
+  const handleAudioPlay = () => {
+    setIsPlaying(true);
+    const id = getEpisodeId(activeEpisode);
+    incrementPlayOnce(id);
   };
 
   useEffect(() => {
@@ -222,9 +227,13 @@ const openPlayer = (episode) => {
     (async () => {
       try {
         const res = await api.get("/api/categories");
-        if (!cancelled) setCategories(Array.isArray(res.data) ? res.data : []);
+        if (!cancelled) {
+          setCategories(Array.isArray(res.data) ? res.data : []);
+        }
       } catch {
-        if (!cancelled) setCategories([]);
+        if (!cancelled) {
+          setCategories([]);
+        }
       }
     })();
 
@@ -239,6 +248,7 @@ const openPlayer = (episode) => {
         closePlayer();
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [playerOpen]);
@@ -261,6 +271,7 @@ const openPlayer = (episode) => {
         });
 
         const data = res.data || {};
+
         const items = Array.isArray(data.items)
           ? data.items
           : Array.isArray(data.Items)
@@ -288,7 +299,7 @@ const openPlayer = (episode) => {
             );
           }
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setEpisodes([]);
           setTotal(0);
@@ -297,7 +308,9 @@ const openPlayer = (episode) => {
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }, 350);
 
@@ -312,6 +325,7 @@ const openPlayer = (episode) => {
     if (!token) return;
 
     const ids = episodes.map(getEpisodeId).filter(Boolean);
+
     ids.forEach((id) => {
       if (!accessByEpisodeId[id]) {
         setAccessByEpisodeId((prev) => ({
@@ -323,200 +337,24 @@ const openPlayer = (episode) => {
     });
   }, [episodes, accessByEpisodeId]);
 
-  function formatDuration(seconds) {
-    if (!seconds || Number.isNaN(seconds)) return null;
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}m ${String(s).padStart(2, "0")}s`;
-  }
+  const clearDisabled =
+    !searchText.trim() &&
+    !selectedCategoryId &&
+    !query.trim() &&
+    categoryId == null;
 
-  function renderCategories(ep) {
-    const cats = Array.isArray(ep?.categories)
-      ? ep.categories
-      : Array.isArray(ep?.Categories)
-        ? ep.Categories
-        : null;
+  const activeEpisodeId = getEpisodeId(activeEpisode);
+  const activeAccess = activeEpisodeId
+    ? accessByEpisodeId[activeEpisodeId]
+    : null;
 
-    return cats && cats.length ? (
-      <span className="pp-badge">🏷 {cats.join(", ")}</span>
-    ) : null;
-  }
+  const hasToken = !!localStorage.getItem("accessToken");
 
   return (
     <div>
-      <style>{`
-  .pp-container { max-width: 1120px; }
-
-  .pp-hero { padding: 40px 0 20px; }
-
-  .pp-title {
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    line-height: 1.05;
-    font-size: clamp(2rem, 4vw, 3rem);
-    margin: 0;
-    color: #ffffff;
-  }
-
-  .pp-subtitle {
-    margin-top: 10px;
-    color: #B8C1BF;
-    max-width: 58ch;
-    font-size: 1.05rem;
-  }
-
-  .pp-glass {
-    background: linear-gradient(135deg, rgba(107,91,123,0.15), rgba(68,68,78,0.15));
-    border: 1px solid rgba(107,91,123,0.3);
-    border-radius: 12px;
-  }
-
-  .pp-muted { color: #B8C1BF; }
-
-  .pp-badge {
-    border-radius: 999px;
-    padding: 5px 10px;
-    font-weight: 700;
-    font-size: 12px;
-    background: rgba(107,91,123,0.2);
-    border: 1px solid rgba(107,91,123,0.4);
-    color: #D3DAD9;
-  }
-
-  .pp-epCard {
-    background: linear-gradient(135deg, rgba(107,91,123,0.2), rgba(68,68,78,0.2));
-    border: 1px solid rgba(107,91,123,0.3);
-    border-radius: 12px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    overflow: hidden;
-  }
-  .pp-epCard:hover {
-    transform: translateY(-5px);
-    border-color: rgba(107,91,123,0.6);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-  }
-
-  .pp-cardTop {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    align-items: flex-start;
-  }
-
-  .pp-epTitle {
-    font-weight: 700;
-    letter-spacing: -0.2px;
-    margin: 0;
-    font-size: 1.1rem;
-    color: #ffffff;
-  }
-
-  .pp-epDesc {
-    margin-top: 8px;
-    color: #B8C1BF;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    font-size: 0.9rem;
-  }
-
-  .pp-metaRow {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
-  }
-
-  .pp-audioWrap {
-    margin-top: 14px;
-    padding: 10px;
-    border-radius: 10px;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(107,91,123,0.3);
-  }
-
-  audio {
-    width: 100%;
-    border-radius: 8px;
-    filter: invert(1) hue-rotate(180deg) brightness(0.9);
-  }
-
-  .pp-link {
-    text-decoration: none;
-    color: #D3DAD9;
-    background: rgba(107,91,123,0.2);
-    border: 1px solid rgba(107,91,123,0.4);
-    padding: 7px 12px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 12px;
-    transition: transform 0.15s ease, background 0.15s ease;
-    white-space: nowrap;
-  }
-  .pp-link:hover {
-    transform: translateY(-1px);
-    background: rgba(107,91,123,0.35);
-    color: #fff;
-  }
-
-  .pp-alert {
-    background: rgba(68,68,78,0.4);
-    border: 1px solid rgba(107,91,123,0.3);
-    color: #B8C1BF;
-    border-radius: 10px;
-  }
-
-  .pp-skeleton {
-    height: 14px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(68,68,78,0.6), rgba(107,91,123,0.3), rgba(68,68,78,0.6));
-    background-size: 200% 100%;
-    animation: shimmer 1.3s infinite linear;
-  }
-  @keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  .pp-footer {
-    color: #B8C1BF;
-    border-top: 1px solid rgba(107,91,123,0.3);
-    background: rgba(68,68,78,0.3);
-  }
-
-  .pp-search-input::placeholder {
-    color: #B8C1BF !important;
-    opacity: 1;
-  }
-
-  .cap-skip-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-  .cap-skip {
-    flex: 1;
-    border-radius: 999px;
-    border: 1px solid rgba(107,91,123,0.4);
-    background: rgba(107,91,123,0.15);
-    color: #D3DAD9;
-    font-weight: 800;
-    font-size: 12px;
-    padding: 6px 10px;
-    transition: background 0.15s ease, transform 0.15s ease;
-    cursor: pointer;
-  }
-  .cap-skip:hover {
-    background: rgba(107,91,123,0.3);
-    transform: translateY(-1px);
-  }
-`}</style>
-
       <div
         className="container pp-container px-5 mb-5"
-       style={{ backgroundColor: "#37353E", color: "#D3DAD9" }}
+        style={{ backgroundColor: "#37353E", color: "#D3DAD9" }}
       >
         <div className="pp-hero text-main">
           <h1 className="pp-title">All episodes. One place.</h1>
@@ -526,776 +364,98 @@ const openPlayer = (episode) => {
           </p>
         </div>
 
-        <div className="d-flex flex-wrap gap-2 align-items-end justify-content-between mb-3">
-          <div>
-            <h4
-              className="m-0"
-              style={{ fontWeight: 900, letterSpacing: -0.3 }}
-            >
-              Episodes
-            </h4>
-            <div className="pp-muted small">
-              {loading
-                ? "Loading…"
-                : `Showing: ${episodes.length} / Total: ${total}`}
-            </div>
-          </div>
+        <EpisodeFilters
+          loading={loading}
+          episodesCount={episodes.length}
+          total={total}
+          searchText={searchText}
+          setSearchText={setSearchText}
+          selectedCategoryId={selectedCategoryId}
+          setSelectedCategoryId={setSelectedCategoryId}
+          categories={categories}
+          onSearch={() => {
+            setQuery(searchText.trim());
+            setCategoryId(
+              selectedCategoryId ? Number(selectedCategoryId) : null,
+            );
+            setPage(1);
+          }}
+          onClear={() => {
+            setSearchText("");
+            setSelectedCategoryId("");
+            setQuery("");
+            setCategoryId(null);
+            setPage(1);
+          }}
+          clearDisabled={clearDisabled}
+        />
 
-          <div className="d-flex flex-wrap gap-2 align-items-center">
-            <div className="pp-glass" style={{ padding: 6, borderRadius: 999 }}>
-              <input
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search publisher or title…"
-                className="form-control pp-search-input"
-                style={{
-                  width: 320,
-                  border: "none",
-                  background: "transparent",
-                  color: "rgba(233,238,252,0.92)",
-                  outline: "none",
-                  boxShadow: "none",
-                }}
-              />
-            </div>
+        {msg && !loading && <div className="alert pp-alert p-4 mb-4">{msg}</div>}
 
-            <div className="pp-glass" style={{ padding: 6, borderRadius: 999 }}>
-              <select
-                value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="form-select"
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "rgba(233,238,252,0.92)",
-                  outline: "none",
-                  boxShadow: "none",
-                  width: 180,
-                }}
-              >
-                <option value="" style={{ color: "#111" }}>
-                  All categories
-                </option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id} style={{ color: "#111" }}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <EpisodePagination
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
 
-            <button
-              className="btn pp-glass"
-              onClick={() => {
-                setQuery(searchText.trim());
-                setCategoryId(selectedCategoryId ? Number(selectedCategoryId) : null);
-                setPage(1);
-              }}
-              style={{
-                color: "rgba(233,238,252,0.92)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                fontWeight: 800,
-                borderRadius: 999,
-                padding: "8px 14px",
-              }}
-            >
-              Search
-            </button>
-
-            <button
-              className="btn pp-glass"
-              onClick={() => {
-                setSearchText("");
-                setSelectedCategoryId("");
-                setQuery("");
-                setCategoryId(null);
-                setPage(1);
-              }}
-              disabled={
-                !searchText.trim() &&
-                !selectedCategoryId &&
-                !query.trim() &&
-                categoryId == null
-              }
-              style={{
-                color: "rgba(233,238,252,0.92)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                fontWeight: 800,
-                borderRadius: 999,
-                padding: "8px 12px",
-                opacity:
-                  !searchText.trim() &&
-                  !selectedCategoryId &&
-                  !query.trim() &&
-                  categoryId == null
-                    ? 0.6
-                    : 1,
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {msg && !loading && (
-          <div className="alert pp-alert p-4 mb-4">{msg}</div>
-        )}
-
-        {!loading && totalPages > 1 && (
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <button
-              className="btn pp-glass"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={{
-                color: "rgba(233,238,252,0.92)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                fontWeight: 800,
-                borderRadius: 999,
-                padding: "8px 12px",
-                opacity: page === 1 ? 0.6 : 1,
-                cursor: page === 1 ? "not-allowed" : "pointer",
-              }}
-            >
-              ← Prev
-            </button>
-
-            <div className="pp-muted small">
-              Page {page} / {totalPages}
-            </div>
-
-            <button
-              className="btn pp-glass"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              style={{
-                color: "rgba(233,238,252,0.92)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                fontWeight: 800,
-                borderRadius: 999,
-                padding: "8px 12px",
-                opacity: page >= totalPages ? 0.6 : 1,
-                cursor: page >= totalPages ? "not-allowed" : "pointer",
-              }}
-            >
-              Next →
-            </button>
-          </div>
-        )}
-
-        {loading && (
-          <div className="row g-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div className="col-12 col-md-6 col-lg-4" key={i}>
-                <div className="card pp-glass p-3">
-                  <div
-                    className="pp-skeleton"
-                    style={{ width: "75%", height: 16 }}
-                  />
-                  <div className="pp-skeleton mt-3" style={{ width: "90%" }} />
-                  <div className="pp-skeleton mt-2" style={{ width: "80%" }} />
-                  <div className="d-flex gap-2 mt-3">
-                    <div
-                      className="pp-skeleton"
-                      style={{ width: 70, height: 26 }}
-                    />
-                    <div
-                      className="pp-skeleton"
-                      style={{ width: 90, height: 26 }}
-                    />
-                  </div>
-                  <div className="pp-skeleton mt-4" style={{ height: 38 }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {loading && <EpisodeSkeleton />}
 
         {!loading && episodes.length > 0 && (
           <div className="row g-3">
-            {episodes.map((ep) => (
-              <div className="col-12 col-md-6 col-lg-4" key={ep.id ?? ep.Id}>
-                <div className="card pp-glass pp-epCard h-100">
-                  <div className="card-body p-4 d-flex flex-column">
-                    <div className="pp-cardTop">
-                      <div className="flex-grow-1">
-                        <h5 className="pp-epTitle">{ep.title ?? ep.Title}</h5>
-                        {(ep.description ?? ep.Description) && (
-                          <div className="pp-epDesc">
-                            {ep.description ?? ep.Description}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+            {episodes.map((ep) => {
+              const id = getEpisodeId(ep);
 
-                    <div className="pp-metaRow">
-                      <span className="pp-badge" style={
-  (ep.isPremium ?? ep.IsPremium)
-    ? { background: "rgba(221,168,83,0.15)", borderColor: "rgba(221,168,83,0.4)", color: "#DDA853" }
-    : { background: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.3)", color: "#4ade80" }
-}>
-  {(ep.isPremium ?? ep.IsPremium) ? "🔒 Premium" : "🆓 Free"}
-</span>
-                      {renderCategories(ep)}
-                      {(ep.season ?? ep.Season) != null && (
-                        <span className="pp-badge">
-                          📺 Season {ep.season ?? ep.Season}
-                        </span>
-                      )}
-                      {(ep.durationSeconds ?? ep.DurationSeconds) ? (
-                        <span className="pp-badge">
-                          ⏱{" "}
-                          {formatDuration(
-                            ep.durationSeconds ?? ep.DurationSeconds,
-                          )}
-                        </span>
-                      ) : null}
-                      {(ep.playCount ?? ep.PlayCount) != null && (
-                        <span className="pp-badge pp-badge--plays">
-                          ▶ {ep.playCount ?? ep.PlayCount} plays
-                        </span>
-                      )}
-                    </div>
-
-                    <button
-                      className="btn pp-glass"
-                      onClick={() => openPlayer(ep)}
-                      style={{
-                        marginTop: 14,
-                        color: "rgba(233,238,252,0.92)",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        fontWeight: 800,
-                        borderRadius: 999,
-                        padding: "8px 14px",
-                        width: "100%",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Open
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              return (
+                <EpisodeCard
+                  key={id}
+                  episode={ep}
+                  access={id ? accessByEpisodeId[id] : null}
+                  hasToken={hasToken}
+                  onOpen={openPlayer}
+                  onOrder={(episodeId) => {
+                    window.location.href = `/order/${episodeId}`;
+                  }}
+                  formatDuration={formatDuration}
+                />
+              );
+            })}
           </div>
         )}
       </div>
 
-      {playerOpen && activeEpisode && (
-        <div
-          className="pp-modal-overlay"
-          onClick={closePlayer}
-          onKeyDown={(e) => e.key === "Escape" && closePlayer()}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            backdropFilter: "blur(8px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1050,
-          }}
-        >
-          <div
-            className="pp-modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-              backdropFilter: "blur(14px)",
-              borderRadius: 20,
-              padding: 32,
-              maxWidth: "90vw",
-              width: 600,
-              maxHeight: "90vh",
-              overflowY: "auto",
-              position: "relative",
-            }}
-          >
-            <button
-              onClick={closePlayer}
-              style={{
-                position: "absolute",
-                top: 16,
-                right: 16,
-                width: 36,
-                height: 36,
-                borderRadius: 999,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.08)",
-                color: "rgba(233,238,252,0.92)",
-                fontSize: 18,
-                fontWeight: 900,
-                cursor: "pointer",
-                transition: "background .15s ease",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onMouseEnter={(e) =>
-                (e.target.style.background = "rgba(255,255,255,0.14)")
-              }
-              onMouseLeave={(e) =>
-                (e.target.style.background = "rgba(255,255,255,0.08)")
-              }
-              aria-label="Close"
-            >
-              ✕
-            </button>
-
-            <div style={{ marginBottom: 28 }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.4rem",
-                  fontWeight: 900,
-                  marginBottom: 12,
-                }}
-              >
-                {activeEpisode.title ?? activeEpisode.Title}
-              </h2>
-              {(activeEpisode.description ?? activeEpisode.Description) && (
-                <p
-                  style={{
-                    margin: 0,
-                    color: "rgba(233,238,252,0.78)",
-                    fontSize: "0.95rem",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {activeEpisode.description ?? activeEpisode.Description}
-                </p>
-              )}
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  marginTop: 14,
-                }}
-              >
-                {(() => {
-                  const cats = Array.isArray(activeEpisode?.categories)
-                    ? activeEpisode.categories
-                    : Array.isArray(activeEpisode?.Categories)
-                      ? activeEpisode.Categories
-                      : null;
-                  return cats && cats.length ? (
-                    <span
-                      className="pp-badge"
-                      style={{
-                        borderRadius: 999,
-                        padding: "7px 10px",
-                        fontWeight: 800,
-                        fontSize: 12,
-                        background: "rgba(255,255,255,0.08)",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        color: "rgba(233,238,252,0.88)",
-                      }}
-                    >
-                      🏷 {cats.join(", ")}
-                    </span>
-                  ) : null;
-                })()}
-
-                {(activeEpisode.season ?? activeEpisode.Season) != null && (
-                  <span
-                    style={{
-                      borderRadius: 999,
-                      padding: "7px 10px",
-                      fontWeight: 800,
-                      fontSize: 12,
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      color: "rgba(233,238,252,0.88)",
-                    }}
-                  >
-                    📺 Season {activeEpisode.season ?? activeEpisode.Season}
-                  </span>
-                )}
-
-                {(activeEpisode.durationSeconds ??
-                activeEpisode.DurationSeconds) ? (
-                  <span
-                    style={{
-                      borderRadius: 999,
-                      padding: "7px 10px",
-                      fontWeight: 800,
-                      fontSize: 12,
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      color: "rgba(233,238,252,0.88)",
-                    }}
-                  >
-                    ⏱{" "}
-                    {(() => {
-                      const s =
-                        activeEpisode.durationSeconds ??
-                        activeEpisode.DurationSeconds;
-                      const m = Math.floor(s / 60);
-                      const sec = s % 60;
-                      return `${m}m ${String(sec).padStart(2, "0")}s`;
-                    })()}
-                  </span>
-                ) : null}
-
-                {(activeEpisode.playCount ?? activeEpisode.PlayCount) !=
-                  null && (
-                  <span
-                    style={{
-                      borderRadius: 999,
-                      padding: "7px 10px",
-                      fontWeight: 800,
-                      fontSize: 12,
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      color: "rgba(233,238,252,0.88)",
-                    }}
-                  >
-                    ▶ {activeEpisode.playCount ?? activeEpisode.PlayCount} plays
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {(() => {
-              const id = getEpisodeId(activeEpisode);
-              const access = id ? accessByEpisodeId[id] : null;
-
-              if (!id) {
-                return <div className="text-danger">Invalid episode.</div>;
-              }
-
-              if (!access || access.state === "loading") {
-                return <div className="pp-muted">Checking access…</div>;
-              }
-
-              if (access.state === "not_logged_in") {
-                return (
-                  <button
-                    className="btn pp-glass"
-                    onClick={() => (window.location.href = "/login")}
-                    style={{
-                      width: "100%",
-                      color: "rgba(233,238,252,0.92)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      fontWeight: 800,
-                      borderRadius: 999,
-                      padding: "10px 14px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Log in
-                  </button>
-                );
-              }
-
-            if (access.state === "not_owned") {
-  const isPremium =
-    activeEpisode?.isPremium ?? activeEpisode?.IsPremium ?? false;
-
-  const audioUrl =
-    activeEpisode?.audioUrl ?? activeEpisode?.AudioUrl ?? null;
-
-  if (!isPremium) {
-    return (
-      <button
-        className="btn pp-glass"
-        onClick={() => {
-          if (!audioUrl) {
-            console.error("No audio URL available.");
-            return;
+      <EpisodePlayerModal
+        open={playerOpen}
+        episode={activeEpisode}
+        access={activeAccess}
+        onClose={closePlayer}
+        onLogin={() => {
+          window.location.href = "/login";
+        }}
+        onOrder={(episodeId) => {
+          window.location.href = `/order/${episodeId}`;
+        }}
+        onRetry={fetchAccess}
+        onFreePlay={handleFreePlay}
+        audioRef={audioRef}
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        playbackRate={playbackRate}
+        onSeek={(time) => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = time;
           }
-
-          setAccessByEpisodeId((prev) => ({
-            ...prev,
-            [id]: { state: "owned", episode: { ...activeEpisode, audioUrl } },
-          }));
-
-          requestAnimationFrame(() => {
-            if (audioRef.current) {
-              audioRef.current.src = audioUrl;
-              audioRef.current.play().catch(() => {});
-            }
-          });
-
-          incrementPlayOnce(id);
         }}
-        style={{
-          width: "100%",
-          color: "rgba(233,238,252,0.92)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          fontWeight: 800,
-          borderRadius: 999,
-          padding: "10px 14px",
-          cursor: "pointer",
-        }}
-      >
-        ▶ Play (Free)
-      </button>
-    );
-  }
-              return (
-                  <button
-                    className="btn pp-glass"
-                    onClick={() => (window.location.href = `/order/${id}`)}
-                    style={{
-                      width: "100%",
-                      color: "rgba(233,238,252,0.92)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      fontWeight: 800,
-                      borderRadius: 999,
-                      padding: "10px 14px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    🔒 Order to Unlock
-                  </button>
-                );
-              }
-              if (access.state === "owned") {
-                const src =
-                  access.episode?.audioUrl ?? access.episode?.AudioUrl;
-
-                return (
-                  <div
-                    style={{
-                      background: "rgba(0,0,0,0.22)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      borderRadius: 14,
-                      padding: 16,
-                      marginBottom: 20,
-                    }}
-                  >
-                    <audio
-                      ref={audioRef}
-                      onPlay={() => {
-                        setIsPlaying(true);
-                        incrementPlayOnce(id);
-                      }}
-                      onPause={() => setIsPlaying(false)}
-                      onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-                      onLoadedMetadata={(e) => setDuration(e.target.duration)}
-                      onEnded={() => setIsPlaying(false)}
-                      style={{ display: "none" }}
-                    >
-                      <source src={src} />
-                    </audio>
-
-                    <div style={{ marginBottom: 12 }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max={duration || 0}
-                        value={currentTime}
-                        onChange={(e) => {
-                          if (audioRef.current) {
-                            audioRef.current.currentTime = parseFloat(
-                              e.target.value,
-                            );
-                          }
-                        }}
-                        style={{
-                          width: "100%",
-                          height: 6,
-                          borderRadius: 3,
-                          background: "rgba(255,255,255,0.10)",
-                          outline: "none",
-                          cursor: "pointer",
-                          accentColor: "rgba(233,238,252,0.92)",
-                        }}
-                      />
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginTop: 8,
-                          color: "rgba(233,238,252,0.72)",
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        <span>
-                          {Math.floor(currentTime / 60)}:
-                          {String(Math.floor(currentTime % 60)).padStart(
-                            2,
-                            "0",
-                          )}
-                        </span>
-                        <span>
-                          {Math.floor(duration / 60)}:
-                          {String(Math.floor(duration % 60)).padStart(2, "0")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        gap: 12,
-                        marginBottom: 14,
-                      }}
-                    >
-                      <button
-                        onClick={() => skip(-15)}
-                        style={{
-                          flex: 1,
-                          borderRadius: 999,
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          background: "rgba(255,255,255,0.08)",
-                          color: "rgba(233,238,252,0.9)",
-                          fontWeight: 800,
-                          fontSize: 12,
-                          padding: "6px 10px",
-                          transition:
-                            "background .15s ease, transform .15s ease",
-                          cursor: "pointer",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = "rgba(255,255,255,0.14)";
-                          e.target.style.transform = "translateY(-1px)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = "rgba(255,255,255,0.08)";
-                          e.target.style.transform = "translateY(0)";
-                        }}
-                      >
-                        ⏮ -15s
-                      </button>
-
-                      <button
-                        onClick={togglePlayPause}
-                        style={{
-                          width: 50,
-                          height: 50,
-                          borderRadius: 999,
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          background: "rgba(255,255,255,0.10)",
-                          color: "rgba(233,238,252,0.95)",
-                          fontWeight: 900,
-                          fontSize: 20,
-                          cursor: "pointer",
-                          transition:
-                            "background .15s ease, transform .15s ease",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = "rgba(255,255,255,0.14)";
-                          e.target.style.transform = "scale(1.05)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = "rgba(255,255,255,0.10)";
-                          e.target.style.transform = "scale(1)";
-                        }}
-                      >
-                        {isPlaying ? "⏸" : "▶"}
-                      </button>
-
-                      <button
-                        onClick={() => skip(15)}
-                        style={{
-                          flex: 1,
-                          borderRadius: 999,
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          background: "rgba(255,255,255,0.08)",
-                          color: "rgba(233,238,252,0.9)",
-                          fontWeight: 800,
-                          fontSize: 12,
-                          padding: "6px 10px",
-                          transition:
-                            "background .15s ease, transform .15s ease",
-                          cursor: "pointer",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = "rgba(255,255,255,0.14)";
-                          e.target.style.transform = "translateY(-1px)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = "rgba(255,255,255,0.08)";
-                          e.target.style.transform = "translateY(0)";
-                        }}
-                      >
-                        +15s ⏭
-                      </button>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        flexWrap: "wrap",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                        <button
-                          key={rate}
-                          onClick={() => setSpeed(rate)}
-                          style={{
-                            borderRadius: 999,
-                            border: "1px solid rgba(255,255,255,0.12)",
-                            background:
-                              playbackRate === rate
-                                ? "rgba(255,255,255,0.16)"
-                                : "rgba(255,255,255,0.08)",
-                            color: "rgba(233,238,252,0.9)",
-                            fontWeight: 800,
-                            fontSize: 11,
-                            padding: "5px 10px",
-                            transition: "background .15s ease",
-                            cursor: "pointer",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (playbackRate !== rate) {
-                              e.target.style.background =
-                                "rgba(255,255,255,0.12)";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (playbackRate !== rate) {
-                              e.target.style.background =
-                                "rgba(255,255,255,0.08)";
-                            }
-                          }}
-                        >
-                          {rate}x
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <button
-                  className="btn pp-glass"
-                  onClick={() => fetchAccess(id)}
-                  style={{
-                    width: "100%",
-                    color: "rgba(233,238,252,0.92)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    fontWeight: 800,
-                    borderRadius: 999,
-                    padding: "10px 14px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Retry
-                </button>
-              );
-            })()}
-          </div>
-        </div>
-      )}
+        onSkip={skip}
+        onTogglePlayPause={togglePlayPause}
+        onSetSpeed={setSpeed}
+        onAudioPlay={handleAudioPlay}
+        onAudioPause={() => setIsPlaying(false)}
+        onAudioTimeUpdate={(time) => setCurrentTime(time)}
+        onAudioLoadedMetadata={(nextDuration) => setDuration(nextDuration)}
+        onAudioEnded={() => setIsPlaying(false)}
+      />
     </div>
   );
 }

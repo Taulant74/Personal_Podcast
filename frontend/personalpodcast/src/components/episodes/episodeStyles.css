@@ -1,0 +1,163 @@
+.pp-container {
+  max-width: 1120px;
+}
+
+.pp-hero {
+  padding: 40px 0 20px;
+}
+
+.pp-title {
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.05;
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 0;
+  color: #ffffff;
+}
+
+.pp-subtitle {
+  margin-top: 10px;
+  color: #b8c1bf;
+  max-width: 58ch;
+  font-size: 1.05rem;
+}
+
+.pp-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(107, 91, 123, 0.15),
+    rgba(68, 68, 78, 0.15)
+  );
+  border: 1px solid rgba(107, 91, 123, 0.3);
+  border-radius: 12px;
+}
+
+.pp-muted {
+  color: #b8c1bf;
+}
+
+.pp-badge {
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-weight: 700;
+  font-size: 12px;
+  background: rgba(107, 91, 123, 0.2);
+  border: 1px solid rgba(107, 91, 123, 0.4);
+  color: #d3dad9;
+}
+
+.card.pp-epCard {
+  background: linear-gradient(
+    135deg,
+    rgba(107, 91, 123, 0.2),
+    rgba(68, 68, 78, 0.2)
+  ) !important;
+  background-color: rgba(68, 68, 78, 0.75) !important;
+  border: 1px solid rgba(107, 91, 123, 0.3) !important;
+  border-radius: 12px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.pp-epCard:hover {
+  transform: translateY(-5px);
+  border-color: rgba(107, 91, 123, 0.6);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+.pp-epTitle {
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin: 0;
+  font-size: 1.1rem;
+  color: #ffffff;
+}
+
+.pp-epDesc {
+  margin-top: 8px;
+  color: #b8c1bf;
+  display: -webkit-box;
+  /* -webkit-line-clamp: 3; */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.pp-alert {
+  background: rgba(68, 68, 78, 0.4);
+  border: 1px solid rgba(107, 91, 123, 0.3);
+  color: #b8c1bf;
+  border-radius: 10px;
+}
+
+.pp-skeleton {
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(68, 68, 78, 0.6),
+    rgba(107, 91, 123, 0.3),
+    rgba(68, 68, 78, 0.6)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.3s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.pp-search-input::placeholder {
+  color: #b8c1bf !important;
+  opacity: 1;
+}
+
+.pp-filter-control {
+  border: 1px solid rgba(107, 91, 123, 0.3);
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    rgba(107, 91, 123, 0.15),
+    rgba(68, 68, 78, 0.15)
+  );
+  color: rgba(233, 238, 252, 0.92);
+  outline: none;
+  box-shadow: none;
+  padding: 10px 16px;
+}
+
+.pp-filter-control:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.pp-search-input {
+  width: 320px;
+}
+
+.pp-select-input {
+  width: 180px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 42px;
+  cursor: pointer;
+
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(233,238,252,0.92)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+}
+
+.pp-search-input::placeholder {
+  color: #b8c1bf;
+  opacity: 1;
+}
