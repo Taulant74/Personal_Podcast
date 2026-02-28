@@ -12,8 +12,8 @@ import UserPanelPage from "./pages/UserPanelPage";
 import RequireRole from "./components/RequireRole";
 import OrderPage from './pages/OrderPage';
 import MyEpisodesPage from './pages/MyEpisodesPage';
-import AboutPage from "./pages/AboutPage";
-import HelpPage from "./pages/HelpPage";
+import AboutPage from "./pages/AboutPage/AboutPage";
+import HelpPage from "./pages/HelpPage/HelpPage";
 
 function App() {
   return (
