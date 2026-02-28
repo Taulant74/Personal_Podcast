@@ -148,7 +148,7 @@ builder.Services.AddScoped<PersonalPodcast.Services.IUserService, PersonalPodcas
 
 var app = builder.Build();
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/api/health");
 
 app.UseCors("AllowFrontend");
 
