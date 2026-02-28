@@ -10,9 +10,9 @@ using PersonalPodcast.Services;
 using System.Text;
 
 
-// Env.Load();
+Env.Load();
 
-// Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
+Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
 
 
 // var builder = WebApplication.CreateBuilder(args);

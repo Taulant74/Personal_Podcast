@@ -53,21 +53,15 @@ export default function EpisodePage() {
 
   const [accessByEpisodeId, setAccessByEpisodeId] = useState({});
 
-  const fetchAccess = async (episodeId) => {
-    const res = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`), {
-      method: "GET",
-    });
+const fetchAccess = async (episodeId) => {
+  const res = await authFetch(apiUrl(`/api/orders/episodes/${episodeId}`), {
+    method: "GET",
+  });
 
-    if (res.status === 200) {
-      const data = await res.json();
-      setAccessByEpisodeId((prev) => ({
-        ...prev,
-        [episodeId]: { state: "owned", episode: data },
-      }));
-      return;
-    }
+  if (res.status === 200) {
+    const data = await res.json();
 
-    if (res.status === 404) {
+    if (data.owned === false) {
       setAccessByEpisodeId((prev) => ({
         ...prev,
         [episodeId]: { state: "not_owned" },
@@ -75,19 +69,27 @@ export default function EpisodePage() {
       return;
     }
 
-    if (res.status === 401) {
-      setAccessByEpisodeId((prev) => ({
-        ...prev,
-        [episodeId]: { state: "not_logged_in" },
-      }));
-      return;
-    }
-
+    const episode = data.episode ?? data;
     setAccessByEpisodeId((prev) => ({
       ...prev,
-      [episodeId]: { state: "error" },
+      [episodeId]: { state: "owned", episode },
     }));
-  };
+    return;
+  }
+
+  if (res.status === 401) {
+    setAccessByEpisodeId((prev) => ({
+      ...prev,
+      [episodeId]: { state: "not_logged_in" },
+    }));
+    return;
+  }
+
+  setAccessByEpisodeId((prev) => ({
+    ...prev,
+    [episodeId]: { state: "error" },
+  }));
+};
 
   const incrementPlayOnce = async (episodeId) => {
     if (!episodeId) return;
