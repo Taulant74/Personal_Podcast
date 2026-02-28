@@ -31,7 +31,7 @@ function AccordionSection() {
                   data-bs-parent="#faqAccordion"
                 >
                   <div className="accordion-body background-light">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                    You can easily browse and listen to your favorite podcasts, publishers and order episodes; Search by a variety of filters that you can combine to find exactly what you are looking for.
                   </div>
                 </div>
               </div>
@@ -53,7 +53,7 @@ function AccordionSection() {
                   data-bs-parent="#faqAccordion"
                 >
                   <div className="accordion-body background-light">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                    To get started, you can either listen to free episodes without an account or log in and be able to purchase episodes, to see each purchased episode you can simply go to the "My Episodes" section in the header and there you can listen to all the episodes you have purchased.
                   </div>
                 </div>
               </div>
@@ -75,7 +75,7 @@ function AccordionSection() {
                   data-bs-parent="#faqAccordion"
                 >
                   <div className="accordion-body background-light">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                    If you have any questions or require assistance, please reach out and contact us through the "Help" section in the header. We are here to assist you and ensure you have a great experience with our platform.
                   </div>
                 </div>
               </div>
