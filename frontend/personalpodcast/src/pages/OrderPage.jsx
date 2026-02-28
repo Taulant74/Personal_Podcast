@@ -48,7 +48,7 @@ export default function OrderPage() {
       });
 
       if (res.status === 200) {
-        navigate("/");
+        navigate("/my-episodes");
         return;
       }
 
