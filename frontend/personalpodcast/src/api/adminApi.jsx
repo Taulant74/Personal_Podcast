@@ -1,4 +1,6 @@
-import { apiUrl } from "../../config/api";
+// src/api/adminApi.js
+
+import { apiUrl } from "../config/api";
 
 export const ADMIN_EPISODES_URL = apiUrl("/api/Admin/episodes");
 export const ADMIN_USERS_URL = apiUrl("/api/Admin/users");
@@ -19,6 +21,7 @@ export async function fetchJsonOrTextError(res) {
   return { ok: false, error: txt || `Request failed (${res.status})` };
 }
 
+// ---------- categories ----------
 export async function apiLoadCategories() {
   const res = await fetch(CATEGORIES_URL, { method: "GET", headers: authHeaders() });
   const out = await fetchJsonOrTextError(res);
@@ -37,6 +40,7 @@ export async function apiCreateCategory(name) {
   return out.data;
 }
 
+// ---------- episodes ----------
 export function buildEpisodeFormData(form, requireFile, categoryIds) {
   const fd = new FormData();
 
@@ -49,8 +53,6 @@ export function buildEpisodeFormData(form, requireFile, categoryIds) {
   }
 
   fd.append("isPublished", String(!!form.isPublished));
-
-  fd.append("IsPremium", String(!!form.isPremium));
 
   if (form.file) fd.append("file", form.file);
   else if (requireFile) throw new Error("Audio file is required.");
@@ -89,6 +91,7 @@ export async function apiDeleteEpisode(id) {
   }
 }
 
+// ---------- users ----------
 export function normalizeUserPayload(form, includePassword) {
   const payload = {
     username: (form.username || "").trim(),

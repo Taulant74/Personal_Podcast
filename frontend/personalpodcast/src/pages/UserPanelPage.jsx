@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from '../components/LoadingSpinner';
 import { apiUrl } from "../config/api";
 import "../components/css/UserPannelPage.css";
+import { Navigate } from 'react-router-dom';
 
 function UserPanelPage() {
   const { user: authUser, authFetch, loading: authLoading } = useAuth();
@@ -159,10 +160,6 @@ function UserPanelPage() {
       )}
     </div>
   );
-
-  if (!authUser) {
-    return <div className="text-danger p-5">Not authenticated</div>;
-  }
 
   if (loading) {
     return <div className="d-flex justify-content-center mt-5 text-white p-5"><LoadingSpinner /></div>;
