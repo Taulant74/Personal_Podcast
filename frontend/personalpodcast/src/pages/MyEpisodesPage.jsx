@@ -607,13 +607,6 @@ export default function MyEpisodesPage() {
           </div>
         )}
       </div>
-
-      <div className="pp-footer py-3">
-        <div className="container pp-container d-flex flex-wrap gap-2 justify-content-between align-items-center">
-          <small>Built for your MVP: browse + listen.</small>
-          <small className="pp-muted">Admin upload page is separate.</small>
-        </div>
-      </div>
     </div>
   );
 }

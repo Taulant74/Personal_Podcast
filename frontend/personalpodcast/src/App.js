@@ -17,6 +17,7 @@ import HelpPage from "./pages/HelpPage";
 import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NoPage from "./pages/NoPage";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
             </Route>
           </Routes>
+          <Footer />
         </div>
       </Router>
     </AuthProvider>

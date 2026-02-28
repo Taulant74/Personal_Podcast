@@ -10,16 +10,16 @@ using PersonalPodcast.Services;
 using System.Text;
 
 
-Env.Load();
+// Env.Load();
 
-Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
+// Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
 
 
-var builder = WebApplication.CreateBuilder(args);
+// var builder = WebApplication.CreateBuilder(args);
 
 // qit pjesen muni me komenti deri te console write line. Edhe q'komentojeni qit pjesen nalt nese e keni env file nfolder tbackendit jo nroot
-//var builder = WebApplication.CreateBuilder(args);
-//Env.Load(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
+var builder = WebApplication.CreateBuilder(args);
+Env.Load(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
 Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
 
 // CORS policy per me lan backendin me komuniku me frontin 

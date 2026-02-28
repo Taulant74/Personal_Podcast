@@ -1,11 +1,10 @@
 // src/api/adminApi.js
 
-const API_BASE = "https://localhost:7261";
-const ADMIN_URL = `${API_BASE}/api/Admin`;
+import { apiUrl } from "../config/api";
 
-export const ADMIN_EPISODES_URL = `${ADMIN_URL}/episodes`;
-export const ADMIN_USERS_URL = `${ADMIN_URL}/users`;
-export const CATEGORIES_URL = `${API_BASE}/api/categories`;
+export const ADMIN_EPISODES_URL = apiUrl("/api/Admin/episodes");
+export const ADMIN_USERS_URL = apiUrl("/api/Admin/users");
+export const CATEGORIES_URL = apiUrl("/api/categories");
 
 export function getToken() {
   return localStorage.getItem("accessToken");
