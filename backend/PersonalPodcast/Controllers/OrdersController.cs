@@ -25,8 +25,7 @@ namespace PersonalPodcast.Controllers
             if (request.EpisodeId <= 0)
                 return BadRequest(new { message = "Invalid episodeId." });
 
-            var userIdStr = User.FindFirstValue(ClaimTypes.Sid);
-            if (string.IsNullOrWhiteSpace(userIdStr) || !int.TryParse(userIdStr, out var userId))
+            if (!TryGetUserId(out var userId))
                 return Unauthorized(new { message = "Invalid user token." });
 
             var episodeExists = await _db.Episodes
@@ -64,8 +63,7 @@ namespace PersonalPodcast.Controllers
         [HttpGet]
         public async Task<IActionResult> GetOrderByUser()
         {
-            var userIdStr = User.FindFirstValue(ClaimTypes.Sid);
-            if (string.IsNullOrWhiteSpace(userIdStr) || !int.TryParse(userIdStr, out var userId))
+            if (!TryGetUserId(out var userId))
                 return Unauthorized(new { message = "Invalid user token." });
 
             var orders = await _db.Orders
@@ -86,8 +84,7 @@ namespace PersonalPodcast.Controllers
         [HttpGet("episodes/{episodeId:int}")]
         public async Task<IActionResult> GetOrderedEpisodeById(int episodeId)
         {
-            var userIdStr = User.FindFirstValue(ClaimTypes.Sid);
-            if (string.IsNullOrWhiteSpace(userIdStr) || !int.TryParse(userIdStr, out var userId))
+            if (!TryGetUserId(out var userId))
                 return Unauthorized(new { message = "Invalid user token." });
 
             var hasOrder = await _db.Orders
@@ -95,7 +92,7 @@ namespace PersonalPodcast.Controllers
                 .AnyAsync(o => o.UserId == userId && o.EpisodeId == episodeId);
 
             if (!hasOrder)
-                return NotFound(new { message = "Episode not found." });
+                return Ok(new { owned = false });
 
             var episode = await _db.Episodes
                 .AsNoTracking()
@@ -115,9 +112,9 @@ namespace PersonalPodcast.Controllers
                 .FirstOrDefaultAsync();
 
             if (episode == null)
-                return NotFound(new { message = "Episode not found." });
+                return Ok(new { owned = false });
 
-            return Ok(episode);
+            return Ok(new { owned = true, episode });
         }
 
         [Authorize]
@@ -156,6 +153,19 @@ namespace PersonalPodcast.Controllers
                 .ToListAsync();
 
             return Ok(episodes);
+        }
+
+        private bool TryGetUserId(out int userId)
+        {
+            userId = 0;
+
+            var userIdStr =
+                User.FindFirstValue(ClaimTypes.Sid) ??
+                User.FindFirstValue("sid") ??
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("sub");
+
+            return !string.IsNullOrWhiteSpace(userIdStr) && int.TryParse(userIdStr, out userId);
         }
     }
 }
