@@ -20,7 +20,10 @@ export async function fetchJsonOrTextError(res) {
 }
 
 export async function apiLoadCategories() {
-  const res = await fetch(CATEGORIES_URL, { method: "GET", headers: authHeaders() });
+  const res = await fetch(CATEGORIES_URL, {
+    method: "GET",
+    headers: authHeaders(),
+  });
   const out = await fetchJsonOrTextError(res);
   if (!out.ok) throw new Error(out.error);
   return Array.isArray(out.data) ? out.data : [];
@@ -35,6 +38,20 @@ export async function apiCreateCategory(name) {
   const out = await fetchJsonOrTextError(res);
   if (!out.ok) throw new Error(out.error);
   return out.data;
+}
+
+export async function apiDeleteCategory(id) {
+  const res = await fetch(`${CATEGORIES_URL}/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (res.status === 204) return;
+
+  if (res.ok) return;
+
+  const txt = await res.text().catch(() => "");
+  throw new Error(txt || `Failed to delete category (${res.status}).`);
 }
 
 export function buildEpisodeFormData(form, requireFile, categoryIds) {
@@ -59,7 +76,10 @@ export function buildEpisodeFormData(form, requireFile, categoryIds) {
 }
 
 export async function apiLoadEpisodes() {
-  const res = await fetch(ADMIN_EPISODES_URL, { method: "GET", headers: authHeaders() });
+  const res = await fetch(ADMIN_EPISODES_URL, {
+    method: "GET",
+    headers: authHeaders(),
+  });
   const out = await fetchJsonOrTextError(res);
   if (!out.ok) throw new Error(out.error);
   return Array.isArray(out.data) ? out.data : [];
@@ -67,7 +87,11 @@ export async function apiLoadEpisodes() {
 
 export async function apiCreateEpisode(form, categoryIds) {
   const fd = buildEpisodeFormData(form, true, categoryIds);
-  const res = await fetch(ADMIN_EPISODES_URL, { method: "POST", headers: authHeaders(), body: fd });
+  const res = await fetch(ADMIN_EPISODES_URL, {
+    method: "POST",
+    headers: authHeaders(),
+    body: fd,
+  });
   const out = await fetchJsonOrTextError(res);
   if (!out.ok) throw new Error(out.error);
   return out.data;
@@ -75,14 +99,21 @@ export async function apiCreateEpisode(form, categoryIds) {
 
 export async function apiUpdateEpisode(id, form, categoryIds) {
   const fd = buildEpisodeFormData(form, false, categoryIds);
-  const res = await fetch(`${ADMIN_EPISODES_URL}/${id}`, { method: "PUT", headers: authHeaders(), body: fd });
+  const res = await fetch(`${ADMIN_EPISODES_URL}/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: fd,
+  });
   const out = await fetchJsonOrTextError(res);
   if (!out.ok) throw new Error(out.error);
   return out.data;
 }
 
 export async function apiDeleteEpisode(id) {
-  const res = await fetch(`${ADMIN_EPISODES_URL}/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await fetch(`${ADMIN_EPISODES_URL}/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   if (!res.ok && res.status !== 204) {
     const txt = await res.text().catch(() => "");
     throw new Error(txt || `Delete failed (${res.status})`);
@@ -96,7 +127,10 @@ export function normalizeUserPayload(form, includePassword) {
     lastName: (form.lastName || "").trim(),
     role: (form.role || "User").trim(),
     email: (form.email || "").trim() || null,
-    age: form.age === "" || form.age === null || form.age === undefined ? null : Number(form.age),
+    age:
+      form.age === "" || form.age === null || form.age === undefined
+        ? null
+        : Number(form.age),
   };
 
   if (payload.age !== null && !Number.isFinite(payload.age)) {
@@ -110,7 +144,10 @@ export function normalizeUserPayload(form, includePassword) {
 }
 
 export async function apiLoadUsers() {
-  const res = await fetch(ADMIN_USERS_URL, { method: "GET", headers: authHeaders() });
+  const res = await fetch(ADMIN_USERS_URL, {
+    method: "GET",
+    headers: authHeaders(),
+  });
   const out = await fetchJsonOrTextError(res);
   if (!out.ok) throw new Error(out.error);
   return Array.isArray(out.data) ? out.data : [];
@@ -141,7 +178,10 @@ export async function apiUpdateUser(id, form) {
 }
 
 export async function apiDeleteUser(id) {
-  const res = await fetch(`${ADMIN_USERS_URL}/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await fetch(`${ADMIN_USERS_URL}/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   if (!res.ok && res.status !== 204) {
     const txt = await res.text().catch(() => "");
     throw new Error(txt || `Delete failed (${res.status})`);
