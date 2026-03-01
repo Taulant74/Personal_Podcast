@@ -51,8 +51,9 @@ namespace PersonalPodcast.Controllers
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None
+                Secure = false,                 
+                SameSite = SameSiteMode.Lax,    
+                Path = "/api/auth"
             };
 
             Response.Cookies.Delete("refreshToken", cookieOptions);
@@ -80,9 +81,10 @@ namespace PersonalPodcast.Controllers
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
-                Secure = true,
-                SameSite = SameSiteMode.None
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
+                Secure = false,                 
+                SameSite = SameSiteMode.Lax,    
+                Path = "/api/auth"
             };
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
