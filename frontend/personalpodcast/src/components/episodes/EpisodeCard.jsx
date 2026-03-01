@@ -43,17 +43,16 @@ export default function EpisodeCard({
               <div>
                 <h5 className="pp-epTitle mb-1">{title}</h5>
                 <div className="small pp-muted">
-                  {isPremium ? "Premium episode" : "Free episode"}
+                {publisherName && (
+                <div className="small pp-muted">
+                    <i className="bi bi-person me-1" aria-hidden="true"></i>
+                    {publisherName}
+                </div>
+                )}
                 </div>
               </div>
             </div>
 
-            {publisherName && (
-            <div className="small pp-muted">
-                <i className="bi bi-person me-1" aria-hidden="true"></i>
-                {publisherName}
-            </div>
-            )}
 
             <span
               className={`badge rounded-pill px-3 py-2 fw-semibold ${

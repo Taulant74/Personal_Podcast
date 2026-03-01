@@ -2,7 +2,7 @@ name: Build & Deploy to AKS
 
 on:
   push:
-    branches: ["deploy"]
+    branches: ["main"]
 
 permissions:
   contents: read
