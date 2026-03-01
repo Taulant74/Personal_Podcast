@@ -1,9 +1,14 @@
 import React from 'react'
+import HeroSection from '../components/HomePageComps/HeroSection'
+import AccordionSection from '../components/HomePageComps/AccordionSection'
+import TopEpisodesSection from '../components/HomePageComps/TopEpisodesSection'
 
 function HomePage() {
   return (
     <div>
-      <h1>Welcome to Gjirafa Podcast</h1>
+      <HeroSection />
+      <TopEpisodesSection />
+      <AccordionSection />
     </div>
   )
 }

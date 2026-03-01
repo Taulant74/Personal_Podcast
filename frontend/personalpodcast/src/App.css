@@ -1,6 +1,22 @@
 :root {
   --pp-text-main: #D3DAD9;
   --pp-button-bg: #DDA853;
+  --pp-background-light: #44444E;
+  --pp-background-borders: #2f2f36;
+}
+
+.accordion-item {
+  border: 1px solid #2f2f36 !important;
+}
+
+.accordion-button:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.background-light {
+  background-color: var(--pp-background-light) !important;
+  color: var(--pp-text-main) !important;
 }
 
 .text-main {
