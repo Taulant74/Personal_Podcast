@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Linq;
 using PersonalPodcast.Data;
 using PersonalPodcast.DTOs.AuthDTOs;
 using PersonalPodcast.Models;
@@ -30,7 +29,7 @@ namespace PersonalPodcast.Services
             if (!_validation.IsValidUsername(request.Username))
             {
                 response.success = false;
-                response.message = "Username cannot contain symbols. Only letters and numbers are allowed.";
+                response.message = "Username cannot contain symbols or spaces. Only letters and numbers are allowed.";
                 return (response, null);
             }
 
@@ -161,7 +160,9 @@ namespace PersonalPodcast.Services
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
+
+            // CHANGED BACK TO HmacSha512Signature to match your original code!
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
