@@ -9,7 +9,7 @@ const PublicRoute = () => {
     return <div className="d-flex justify-content-center mt-5 text-white p-5"><LoadingSpinner /></div>;
   }
 
-  return isLoggedIn ? <Navigate to="/user-panel" replace /> : <Outlet />;
+  return isLoggedIn ? <Navigate to="/" replace /> : <Outlet />;
 };
 
 export default PublicRoute;

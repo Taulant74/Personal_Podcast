@@ -340,3 +340,20 @@ select.form-select-sm{
   border-color: rgba(245,158,11,.55) !important;
   box-shadow: 0 16px 34px rgba(245,158,11,.22);
 }
+
+select.form-select,
+select.form-control {
+  color: #111 !important;
+  background-color: #fff !important;
+  color-scheme: light;
+}
+
+select.form-select option,
+select.form-control option {
+  color: #111 !important;
+  background-color: #fff !important;
+}
+
+.form-text {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
