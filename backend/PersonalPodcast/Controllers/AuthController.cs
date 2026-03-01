@@ -10,7 +10,6 @@ namespace PersonalPodcast.Controllers
     {
         private readonly IAuthService _authService;
 
-        // We only inject the AuthService now. DB and Config are handled in the service layer!
         public AuthController(IAuthService authService)
         {
             _authService = authService;
@@ -19,7 +18,6 @@ namespace PersonalPodcast.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<RegisterResponseDto>> Register(RegisterRequestDto request)
         {
-            // The service handles all validation, hashing, and token generation
             var (response, refreshToken) = await _authService.RegisterAsync(request);
 
             if (!response.success)
@@ -27,7 +25,6 @@ namespace PersonalPodcast.Controllers
                 return BadRequest(response);
             }
 
-            // HTTP-specific logic (Cookies) stays in the controller
             SetRefreshTokenCookie(refreshToken!);
 
             return Ok(response);
@@ -70,7 +67,6 @@ namespace PersonalPodcast.Controllers
             if (string.IsNullOrEmpty(refreshToken))
                 return Unauthorized("No token provided.");
 
-            // Service validates the token and the user in the DB
             var newAccessToken = _authService.RefreshAccessToken(refreshToken);
 
             if (newAccessToken == null)
@@ -79,8 +75,6 @@ namespace PersonalPodcast.Controllers
             return Ok(new { accessToken = newAccessToken });
         }
 
-        // Helper method to keep endpoints clean. 
-        // This stays here because it directly interacts with the HTTP Response.
         private void SetRefreshTokenCookie(string refreshToken)
         {
             var cookieOptions = new CookieOptions
