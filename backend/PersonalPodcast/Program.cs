@@ -14,7 +14,7 @@ using System.Text;
 
 //Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
 
-Console.WriteLine("ttest"));
+Console.WriteLine("ttest");
 // var builder = WebApplication.CreateBuilder(args);
 
 // qit pjesen muni me komenti deri te console write line. Edhe q'komentojeni qit pjesen nalt nese e keni env file nfolder tbackendit jo nroot
