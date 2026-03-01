@@ -1,9 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PersonalPodcast.Data;
-using PersonalPodcast.Data;
 using PersonalPodcast.DTOs.UserDTOs;
-
-using PersonalPodcast.Models;
 
 namespace PersonalPodcast.Services
 {
@@ -44,22 +41,38 @@ namespace PersonalPodcast.Services
             if (user == null)
                 return (null, "User not found.");
 
-            if (!string.IsNullOrEmpty(request.Username))
+            if (!string.IsNullOrWhiteSpace(request.Username))
             {
                 if (!_validation.IsValidUsername(request.Username))
                     return (null, "Username cannot contain symbols. Only letters and numbers are allowed.");
 
-                if (_db.Users.Any(u => u.Username == request.Username && u.Id != id))
+                if (await _db.Users.AnyAsync(u => u.Username == request.Username && u.Id != id))
                     return (null, "Username already exists.");
 
                 user.Username = request.Username;
             }
+            else if (request.Username == string.Empty)
+            {
+                return (null, "Username cannot be empty.");
+            }
 
-            if (!string.IsNullOrEmpty(request.FirstName))
+            if (request.FirstName != null) 
+            {
+                if (string.IsNullOrWhiteSpace(request.FirstName))
+                {
+                    return (null, "First name cannot be empty.");
+                }
                 user.FirstName = request.FirstName;
+            }
 
-            if (!string.IsNullOrEmpty(request.LastName))
+            if (request.LastName != null) 
+            {
+                if (string.IsNullOrWhiteSpace(request.LastName))
+                {
+                    return (null, "Last name cannot be empty.");
+                }
                 user.LastName = request.LastName;
+            }
 
             if (request.Age.HasValue)
                 user.Age = request.Age.Value;
@@ -68,6 +81,9 @@ namespace PersonalPodcast.Services
             {
                 if (!_validation.IsValidEmail(request.Email))
                     return (null, "Invalid email format.");
+
+                if (await _db.Users.AnyAsync(u => u.Email == request.Email && u.Id != id))
+                    return (null, "Email is already in use by another account.");
 
                 user.Email = request.Email;
             }

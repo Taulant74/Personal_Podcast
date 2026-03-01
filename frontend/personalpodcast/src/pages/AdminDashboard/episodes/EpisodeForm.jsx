@@ -9,6 +9,7 @@ export default function EpisodeForm({
   categories,
   selectedIds,
   setSelectedIds,
+  loading,
 }) {
   return (
     <form onSubmit={onSubmit}>
@@ -131,9 +132,17 @@ export default function EpisodeForm({
         </div>
 
         <div className="col-12 d-flex justify-content-end gap-2 mt-2">
-          <button type="submit" className="btn btn-brand">
-            {submitLabel}
-          </button>
+          <button
+  type="submit"
+  className="btn pp-glass pp-btn"
+  disabled={loading}
+  style={{
+    opacity: loading ? 0.7 : 1,
+    cursor: loading ? "not-allowed" : "pointer",
+  }}
+>
+  {loading ? "Creating…" : submitLabel}
+</button>
         </div>
       </div>
     </form>

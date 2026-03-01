@@ -212,19 +212,19 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
     <>
       <div className="publisher-stats mb-3">
         <div className="stat-card">
-          <div className="stat-label">Total</div>
+          <div className="stat-label"><i className="bi bi-collection me-1"></i>Total</div>
           <div className="stat-value">{stats.total}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Published</div>
+          <div className="stat-label"><i className="bi bi-broadcast me-1"></i>Published</div>
           <div className="stat-value">{stats.published}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Drafts</div>
+          <div className="stat-label"><i className="bi bi-file-earmark me-1"></i>Drafts</div>
           <div className="stat-value">{stats.drafts}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Total Plays</div>
+          <div className="stat-label"><i className="bi bi-play-circle me-1"></i>Total Plays</div>
           <div className="stat-value">{stats.plays}</div>
         </div>
       </div>
@@ -241,7 +241,7 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
 
           <select
             className="form-select admin-select"
-            style={{ minWidth: 190 }}
+            style={{ minWidth: 190 }} 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -260,7 +260,7 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
             {loading ? "Refreshing..." : "Refresh"}
           </button>
           <button className="btn btn-brand" onClick={openCreate}>
-            + New Episode
+            <i className="bi bi-plus-circle me-1"></i> New Episode
           </button>
         </div>
 
@@ -285,14 +285,14 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
                         </span>
 
                         {labels?.length ? (
-                          <span className="badge-soft badge-info">{labels.join(", ")}</span>
+                          <span className="badge-soft badge-info"><i className="bi bi-tag me-1"></i>{labels.join(", ")}</span>
                         ) : (
                           <span className="badge-soft">—</span>
                         )}
 
-                        <span className="badge-soft">Season: {e.season ?? "—"}</span>
-                        <span className="badge-soft">Duration: {secondsToMinSec(e.durationSeconds)}</span>
-                        <span className="badge-soft">Plays: {e.playCount ?? 0}</span>
+                        <span className="badge-soft"><i className="bi bi-layers me-1"></i>Season: {e.season ?? "—"}</span>
+                        <span className="badge-soft"><i className="bi bi-clock me-1"></i>Duration: {secondsToMinSec(e.durationSeconds)}</span>
+                        <span className="badge-soft"><i className="bi bi-play-fill me-1"></i>Plays: {e.playCount ?? 0}</span>
                       </div>
 
                       <div className="mt-2 row-title text-truncate">{e.title}</div>
@@ -307,7 +307,7 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
 
                     <div className="d-flex gap-2 flex-wrap justify-content-end flex-shrink-0">
                       <button className="btn btn-action btn-action-edit" type="button" onClick={() => openEdit(e)}>
-                        Edit
+                      <i className="bi bi-pencil-fill me-1"></i> Edit
                       </button>
 
                       {e.isPublished ? (
@@ -316,7 +316,7 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
                           type="button"
                           onClick={() => handleSetPublish(e, false)}
                         >
-                          Unpublish
+                         <i className="bi bi-eye-slash me-1"></i> Unpublish
                         </button>
                       ) : (
                         <button
@@ -324,12 +324,12 @@ export default function PublisherEpisodesSection({ setErrorMsg, setSuccessMsg, r
                           type="button"
                           onClick={() => handleSetPublish(e, true)}
                         >
-                          Publish
+                         <i className="bi bi-eye me-1"></i> Publish
                         </button>
                       )}
 
                       <button className="btn btn-action btn-action-delete" type="button" onClick={() => handleDelete(e)}>
-                        Delete
+                        <i className="bi bi-trash-fill me-1"></i>Delete
                       </button>
                     </div>
                   </div>

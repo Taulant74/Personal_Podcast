@@ -17,7 +17,7 @@ namespace PersonalPodcast.Controllers
         private readonly CloudinaryService _cloudinary;
         private readonly PodcastDbContext _db;
         private readonly UserCreateService _UserCreateService;
-
+       
         public AdminController(PodcastDbContext db, CloudinaryService cloudinary, UserCreateService UserCreateService)
         {
             _UserCreateService = UserCreateService;

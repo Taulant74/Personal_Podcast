@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "../AdminDashboard/adminDashboard.css"; 
 import "./publisherDashboard.css";
 import PublisherEpisodesSection from "./episodes/PublisherEpisodesSection";
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 export default function PublisherDashboard() {
   const [errorMsg, setErrorMsg] = useState("");
@@ -13,7 +14,7 @@ export default function PublisherDashboard() {
   }
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell" style={{ background: "#37353E" }}>
       <div className="container py-4">
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
           <div>

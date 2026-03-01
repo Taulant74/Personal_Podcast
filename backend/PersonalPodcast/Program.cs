@@ -63,22 +63,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
             NameClaimType = "unique_name"
         };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = ctx =>
-            {
-                Console.WriteLine("jwt problem");
-                Console.WriteLine(ctx.Exception.ToString());
-                Console.WriteLine("=======================");
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = ctx =>
-            {
-                Console.WriteLine("=== JWT VALIDATED ===");
-                return Task.CompletedTask;
-            }
-        };
     });
 
 // Cloudinary

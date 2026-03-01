@@ -1,9 +1,13 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import Modal from "../components/Modal";
 import PaginationBar from "../components/PaginationBar";
 import EpisodeForm from "./EpisodeForm";
-import { emptyCreateEpisode, formatDate, secondsToMinSec, getEpisodeCategoryLabels } from "../utils";
+import {
+  emptyCreateEpisode,
+  formatDate,
+  secondsToMinSec,
+  getEpisodeCategoryLabels,
+} from "../utils";
 import {
   apiLoadEpisodes,
   apiCreateEpisode,
@@ -11,10 +15,14 @@ import {
   apiDeleteEpisode,
   apiLoadCategories,
   apiCreateCategory,
+  apiDeleteCategory,
 } from "../api";
 
-export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessages }) {
-  
+export default function EpisodesSection({
+  setErrorMsg,
+  setSuccessMsg,
+  resetMessages,
+}) {
   const [episodes, setEpisodes] = useState([]);
   const [episodesLoading, setEpisodesLoading] = useState(false);
   const [episodeQuery, setEpisodeQuery] = useState("");
@@ -25,10 +33,12 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
   const [categories, setCategories] = useState([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [editSelectedCategoryIds, setEditSelectedCategoryIds] = useState([]);
-
+  const [creating, setCreating] = useState(false);
   const [showCreateEpisode, setShowCreateEpisode] = useState(false);
   const [showEditEpisode, setShowEditEpisode] = useState(false);
-  const [createEpisodeForm, setCreateEpisodeForm] = useState({ ...emptyCreateEpisode });
+  const [createEpisodeForm, setCreateEpisodeForm] = useState({
+    ...emptyCreateEpisode,
+  });
   const [editEpisodeId, setEditEpisodeId] = useState(null);
   const [editEpisodeForm, setEditEpisodeForm] = useState({
     title: "",
@@ -43,12 +53,15 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
   const [newCategoryName, setNewCategoryName] = useState("");
   const [addingCategory, setAddingCategory] = useState(false);
 
+  const [showDeleteCategory, setShowDeleteCategory] = useState(false);
+  const [deleteCategoryId, setDeleteCategoryId] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState(false);
+
   async function loadCategories() {
     try {
       const list = await apiLoadCategories();
       setCategories(list);
-    } catch {
-    }
+    } catch {}
   }
 
   async function loadEpisodes() {
@@ -74,24 +87,37 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
   function openEditEpisode(episode) {
     resetMessages();
     setEditEpisodeId(episode.id);
-    let ids =
-      Array.isArray(episode.categoryIds)
-        ? episode.categoryIds
-        : Array.isArray(episode.categoryIDIds)
+    let ids = Array.isArray(episode.categoryIds)
+      ? episode.categoryIds
+      : Array.isArray(episode.categoryIDIds)
         ? episode.categoryIDIds
         : Array.isArray(episode.categoriesIds)
-        ? episode.categoriesIds
-        : Array.isArray(episode.categories) && episode.categories.length && typeof episode.categories[0] === "number"
-        ? episode.categories
-        : [];
+          ? episode.categoriesIds
+          : Array.isArray(episode.categories) &&
+              episode.categories.length &&
+              typeof episode.categories[0] === "number"
+            ? episode.categories
+            : [];
 
-    if ((!ids || ids.length === 0) && Array.isArray(episode.episodeCategories) && episode.episodeCategories.length) {
+    if (
+      (!ids || ids.length === 0) &&
+      Array.isArray(episode.episodeCategories) &&
+      episode.episodeCategories.length
+    ) {
       const ecs = episode.episodeCategories;
       if (typeof ecs[0] === "number") {
         ids = ecs;
       } else if (typeof ecs[0] === "object") {
         ids = ecs
-          .map((x) => x?.categoryId ?? x?.CategoryId ?? x?.category?.id ?? x?.Category?.id ?? x?.id ?? x?.Id)
+          .map(
+            (x) =>
+              x?.categoryId ??
+              x?.CategoryId ??
+              x?.category?.id ??
+              x?.Category?.id ??
+              x?.id ??
+              x?.Id,
+          )
           .filter((v) => typeof v === "number");
       }
     }
@@ -101,9 +127,12 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     setEditEpisodeForm({
       title: episode.title || "",
       description: episode.description || "",
-      season: episode.season === null || episode.season === undefined ? "" : String(episode.season),
+      season:
+        episode.season === null || episode.season === undefined
+          ? ""
+          : String(episode.season),
       isPublished: !!episode.isPublished,
-       isPremium: !!episode.isPremium, 
+      isPremium: !!episode.isPremium,
       file: null,
     });
 
@@ -116,11 +145,52 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     setShowAddCategory(true);
   }
 
+  function openDeleteCategory() {
+    resetMessages();
+    setDeleteCategoryId("");
+    setShowDeleteCategory(true);
+  }
+
+  async function handleDeleteCategorySubmit(e) {
+    e.preventDefault();
+    resetMessages();
+
+    const idNum = Number(deleteCategoryId);
+    if (!idNum || Number.isNaN(idNum)) {
+      setErrorMsg("Please select a category to delete.");
+      return;
+    }
+
+    const cat = categories.find((c) => c.id === idNum);
+    const ok = window.confirm(
+      `Delete category "${cat?.name ?? idNum}"?\n\nThis cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setDeletingCategory(true);
+    try {
+      await apiDeleteCategory(idNum);
+      setSuccessMsg("Category deleted.");
+      setShowDeleteCategory(false);
+
+      setSelectedCategoryIds((prev) => prev.filter((x) => x !== idNum));
+      setEditSelectedCategoryIds((prev) => prev.filter((x) => x !== idNum));
+
+      await loadCategories();
+      await loadEpisodes();
+    } catch (err) {
+      setErrorMsg(err?.message || "Failed to delete category.");
+    } finally {
+      setDeletingCategory(false);
+    }
+  }
+
   async function handleCreateEpisodeSubmit(e) {
     e.preventDefault();
     resetMessages();
 
     try {
+      setCreating(true);
       if (!createEpisodeForm.title.trim()) throw new Error("Title is required.");
       if (!createEpisodeForm.file) throw new Error("Audio file is required.");
 
@@ -131,6 +201,8 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
       await loadEpisodes();
     } catch (e2) {
       setErrorMsg(e2?.message || "Create failed.");
+    }finally {
+      setCreating(false);
     }
   }
 
@@ -142,7 +214,11 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
       if (!editEpisodeId) throw new Error("Missing episode id.");
       if (!editEpisodeForm.title.trim()) throw new Error("Title is required.");
 
-      await apiUpdateEpisode(editEpisodeId, editEpisodeForm, editSelectedCategoryIds);
+      await apiUpdateEpisode(
+        editEpisodeId,
+        editEpisodeForm,
+        editSelectedCategoryIds,
+      );
 
       setSuccessMsg("Episode updated.");
       setShowEditEpisode(false);
@@ -198,10 +274,10 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
 
   useEffect(() => setEpisodePage(1), [episodeQuery, episodes]);
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredEpisodes.length / episodePageSize)), [
-    filteredEpisodes.length,
-    episodePageSize,
-  ]);
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredEpisodes.length / episodePageSize)),
+    [filteredEpisodes.length, episodePageSize],
+  );
 
   useEffect(() => {
     if (episodePage > totalPages) setEpisodePage(totalPages);
@@ -216,7 +292,6 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
   useEffect(() => {
     loadEpisodes();
     loadCategories();
-   
   }, []);
 
   function closeModals() {
@@ -228,12 +303,14 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
 
     setSelectedCategoryIds([]);
     setEditSelectedCategoryIds([]);
+
+    setShowDeleteCategory(false);
+    setDeleteCategoryId("");
   }
 
   return (
     <>
       <div className="glass-card p-3">
-        
         <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
           <input
             className="searchbox flex-grow-1"
@@ -243,19 +320,23 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
           />
 
           <span className="stat-pill">
-            Showing <b>{pagedEpisodes.length}</b> of <b>{filteredEpisodes.length}</b> (total {episodes.length})
+            Showing <b>{pagedEpisodes.length}</b> of{" "}
+            <b>{filteredEpisodes.length}</b> (total {episodes.length})
           </span>
         </div>
 
         <div className="d-flex flex-wrap gap-2 mb-3">
           <button className="btn btn-soft" onClick={loadEpisodes} disabled={episodesLoading}>
-            {episodesLoading ? "Refreshing..." : "Refresh"}
+            <i className="bi bi-arrow-repeat me-1"></i> {episodesLoading ? "Refreshing..." : "Refresh"}
           </button>
           <button className="btn btn-brand" onClick={openCreateEpisode}>
-            + Create Episode
+            <i className="bi bi-plus-circle me-1"></i> Create Episode
           </button>
           <button className="btn btn-soft" onClick={openAddCategory}>
-            + Add Category
+            <i className="bi bi-tag me-1"></i> Add Category
+          </button>
+          <button className="btn btn-soft" onClick={openDeleteCategory}>
+            - Delete Category
           </button>
         </div>
 
@@ -272,33 +353,46 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
                 <div key={e.id} className="row-card">
                   <div className="d-flex justify-content-between align-items-start gap-3">
                     <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                    
                       <div className="d-flex align-items-center gap-2 flex-wrap">
                         <span className="badge-soft">{e.id}</span>
 
-                        <span className={`badge-soft ${e.isPublished ? "badge-ok" : "badge-draft"}`}>
+                        <span
+                          className={`badge-soft ${e.isPublished ? "badge-ok" : "badge-draft"}`}
+                        >
                           {e.isPublished ? "Published" : "Draft"}
                         </span>
 
                         {labels?.length ? (
-                          <span className="badge-soft badge-info">{labels.join(", ")}</span>
+                          <span className="badge-soft badge-info"><i className="bi bi-tag me-1"></i>{labels.join(", ")}</span>
                         ) : (
                           <span className="badge-soft">—</span>
                         )}
 
-                        <span className="badge-soft">Season: {e.season ?? "—"}</span>
-                        <span className="badge-soft">Duration: {secondsToMinSec(e.durationSeconds)}</span>
-                        <span className="badge-soft">Plays: {e.playCount ?? 0}</span>
+                        <span className="badge-soft"><i className="bi bi-layers me-1"></i>Season: {e.season ?? "—"}</span>
+                        <span className="badge-soft"><i className="bi bi-clock me-1"></i>Duration: {secondsToMinSec(e.durationSeconds)}</span>
+                        <span className="badge-soft"><i className="bi bi-play-fill me-1"></i>Plays: {e.playCount ?? 0}</span>
                       </div>
 
-                      <div className="mt-2 row-title text-truncate">{e.title}</div>
-                      <div className="row-desc text-truncate">{e.description || "—"}</div>
+                      <div className="mt-2 row-title text-truncate">
+                        {e.title}
+                      </div>
+                      <div className="row-desc text-truncate">
+                        {e.description || "—"}
+                      </div>
 
                       {e.audioUrl ? (
-                        <audio className="audio-slim mt-2" controls preload="none" src={e.audioUrl} />
+                        <audio
+                          className="audio-slim mt-2"
+                          controls
+                          preload="none"
+                          src={e.audioUrl}
+                        />
                       ) : null}
 
-                      <div className="mt-2 small" style={{ color: "var(--muted)" }}>
+                      <div
+                        className="mt-2 small"
+                        style={{ color: "var(--muted)" }}
+                      >
                         Published: {formatDate(e.publishedDate)}
                       </div>
                     </div>
@@ -309,7 +403,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     onClick={() => openEditEpisode(e)}
     type="button"
   >
-    Edit
+    <i className="bi bi-pencil me-1"></i>Edit
   </button>
 
   <button
@@ -317,7 +411,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     onClick={() => handleDeleteEpisode(e.id)}
     type="button"
   >
-    Delete
+    <i className="bi bi-trash me-1"></i>Delete
   </button>
 </div>
                   </div>
@@ -349,6 +443,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
             categories={categories}
             selectedIds={selectedCategoryIds}
             setSelectedIds={setSelectedCategoryIds}
+            loading={creating} 
           />
         </Modal>
       ) : null}
@@ -386,11 +481,67 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
             </div>
 
             <div className="d-flex justify-content-end gap-2">
-              <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAddCategory(false)}>
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowAddCategory(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={addingCategory || !newCategoryName.trim()}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={addingCategory || !newCategoryName.trim()}
+              >
                 {addingCategory ? "Adding..." : "Add"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {showDeleteCategory ? (
+        <Modal
+          title="Delete Category"
+          onClose={() => setShowDeleteCategory(false)}
+        >
+          <form onSubmit={handleDeleteCategorySubmit}>
+            <div className="mb-3">
+              <label className="form-label">Select category</label>
+
+              <select
+                className="form-select"
+                value={deleteCategoryId}
+                onChange={(e) => setDeleteCategoryId(e.target.value)}
+              >
+                <option value="">-- Select --</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} (#{c.id})
+                  </option>
+                ))}
+              </select>
+
+              <div className="form-text">
+                You can only delete categories that are not used by any episodes.
+              </div>
+            </div>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowDeleteCategory(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                className="btn btn-danger"
+                disabled={deletingCategory || !deleteCategoryId}
+              >
+                {deletingCategory ? "Deleting..." : "Delete"}
               </button>
             </div>
           </form>

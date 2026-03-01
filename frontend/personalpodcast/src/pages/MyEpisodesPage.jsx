@@ -322,7 +322,7 @@ export default function MyEpisodesPage() {
       >
         <div className="pp-hero">
           <h1 className="pp-title text-main">My episodes</h1>
-          <p className="pp-subtitle">Everything you’ve ordered — ready to play.</p>
+          <p className="pp-subtitle">Everything you’ve ordered - ready to play.</p>
         </div>
 
         {msg && !loading && <div className="alert pp-alert p-4 mb-4">{msg}</div>}

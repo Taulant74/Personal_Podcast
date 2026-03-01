@@ -74,6 +74,8 @@ namespace PersonalPodcast.Controllers
                 );
             }
 
+
+ 
             var total = await query.CountAsync();
 
             var sortBy = (request.SortBy ?? "date").ToLowerInvariant();
@@ -105,7 +107,10 @@ namespace PersonalPodcast.Controllers
                     Categories = e.EpisodeCategories
                         .Where(ec => ec.Category != null)
                         .Select(ec => ec.Category!.Name)
-                        .Distinct()
+                        .Distinct(),
+                    PublisherName = e.Publisher != null
+    ? e.Publisher.FirstName + " " + e.Publisher.LastName
+    : null,
                 })
                 .ToListAsync();
 
@@ -120,7 +125,8 @@ namespace PersonalPodcast.Controllers
                 DurationSeconds = e.DurationSeconds,
                 PublishedDate = e.PublishedDate,
                 PlayCount = e.PlayCount,
-                IsPremium = e.IsPremium, 
+                IsPremium = e.IsPremium,
+                PublisherName = e.PublisherName,
                 Categories = e.Categories.ToList()
             }).ToList();
 
