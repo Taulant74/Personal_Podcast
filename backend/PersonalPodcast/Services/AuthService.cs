@@ -161,7 +161,6 @@ namespace PersonalPodcast.Services
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
 
-            // CHANGED BACK TO HmacSha512Signature to match your original code!
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
             var tokenDescriptor = new SecurityTokenDescriptor
