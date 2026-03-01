@@ -166,6 +166,7 @@
 }
 
 .modal-content{
+   background:#1e293b !important;
   background:#0b1220 !important;
   border:1px solid rgba(255,255,255,.12) !important;
   color:var(--text) !important;
@@ -236,7 +237,7 @@ select.form-select-sm{
 }
 .admin-select,
 .admin-select option {
-  background: #0b1220 !important;
+  background:#32323a !important;
   color: var(--text) !important;
 }
 .btn-action{
