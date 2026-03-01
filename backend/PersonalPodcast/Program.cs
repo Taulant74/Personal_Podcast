@@ -10,33 +10,18 @@ using PersonalPodcast.Services;
 using System.Text;
 
 
-Env.Load();
+//Env.Load();
 
-Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
+//Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
 
-
+Console.WriteLine("ttest");
 // var builder = WebApplication.CreateBuilder(args);
 
 // qit pjesen muni me komenti deri te console write line. Edhe q'komentojeni qit pjesen nalt nese e keni env file nfolder tbackendit jo nroot
 var builder = WebApplication.CreateBuilder(args);
 
+Env.Load(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
 Console.WriteLine("Cloudinary name = " + Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME"));
-
-// CORS policy per me lan backendin me komuniku me frontin 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend",
-        policy =>
-        {
-            policy
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials()
-              .SetIsOriginAllowed(_ => true);
-        });
-});
-
-
 
 //----------------------------------------------//
 // Vendosni sherbimet tjera posht qetij komenti,
@@ -140,7 +125,6 @@ app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())
 {
-    Env.Load(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
     app.UseSwagger();
     app.UseSwaggerUI();
 }

@@ -97,8 +97,9 @@ namespace PersonalPodcast.Controllers
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None
+                Secure = false,
+                SameSite = SameSiteMode.Lax,
+                Path = "/api/auth"
             };
 
             Response.Cookies.Delete("refreshToken", cookieOptions);
