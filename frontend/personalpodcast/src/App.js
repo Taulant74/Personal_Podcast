@@ -18,6 +18,7 @@ import PublicRoute from "./components/PublicRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NoPage from "./pages/NoPage";
 import Footer from "./components/Footer";
+import "./styles/pp-theme.css";
 
 function App() {
   return (

@@ -11,6 +11,7 @@
         public bool IsPremium { get; set; }
         public DateTime? PublishedDate { get; set; }
         public int PlayCount { get; set; }
+        public string? PublisherName { get; set; }
         public List<string> Categories { get; set; } = new();
     }
 }

@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="pp-site-footer__panel">
           <div className="row g-4">
             <div className="col-12 col-lg-4">
-              <div className="pp-footer-brand">Personal Podcast</div>
+              <div className="pp-footer-brand">Gjirafa Podcast</div>
               <p className="pp-footer-text pp-footer-text--lead">
                 All episodes. One place.
               </p>
@@ -58,7 +58,7 @@ export default function Footer() {
 
           <div className="pp-site-footer__bottom">
             <div className="pp-footer-meta">
-              © {year} Personal Podcast. Built for smooth browsing, search, and listening.
+              © {year} Gjirafa Podcast. Built for smooth browsing, search, and listening.
             </div>
             <div className="pp-footer-meta">
               Designed for a simple, focused user experience.

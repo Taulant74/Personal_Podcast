@@ -178,10 +178,12 @@ export default function UsersSection({ setErrorMsg, setSuccessMsg, resetMessages
         {/* Actions */}
         <div className="d-flex flex-wrap gap-2 mb-3">
           <button className="btn btn-soft" onClick={loadUsers} disabled={usersLoading}>
-            {usersLoading ? "Refreshing..." : "Refresh"}
+          <i className="bi bi-arrow-repeat me-1"></i> {usersLoading ? "Refreshing..." : "Refresh"}
           </button>
+
           <button className="btn btn-brand" onClick={openCreateUser}>
-            + Create User
+            
+<i className="bi bi-person-plus-fill me-1"> Create User</i> 
           </button>
         </div>
 
@@ -203,13 +205,13 @@ export default function UsersSection({ setErrorMsg, setSuccessMsg, resetMessages
                         <span className="badge-soft">{u.id}</span>
 
                         <span className={`badge-soft ${roleBadgeClass(u.role)}`}>
-                          {u.role || "User"}
+                          <i className="bi bi-shield-lock me-1"></i> {u.role || "User"}
                         </span>
 
-                        <span className="badge-soft">Age: {u.age ?? "—"}</span>
+                        <span className="badge-soft"><i className="bi bi-calendar me-1"></i>Age: {u.age ?? "—"}</span>
 
                         <span className="badge-soft badge-info">
-                          {u.email || "—"}
+                         <i className="bi bi-envelope me-1"></i> {u.email || "—"}
                         </span>
                       </div>
 
@@ -223,7 +225,7 @@ export default function UsersSection({ setErrorMsg, setSuccessMsg, resetMessages
                         type="button"
                         onClick={() => openEditUser(u)}
                       >
-                        Edit
+                        <i className="bi bi-pencil me-1"></i> Edit
                       </button>
 
                       <button
@@ -231,7 +233,7 @@ export default function UsersSection({ setErrorMsg, setSuccessMsg, resetMessages
                         type="button"
                         onClick={() => handleDeleteUser(u.id)}
                       >
-                        Delete
+                        <i className="bi bi-trash me-1"></i> Delete
                       </button>
                     </div>
                   </div>

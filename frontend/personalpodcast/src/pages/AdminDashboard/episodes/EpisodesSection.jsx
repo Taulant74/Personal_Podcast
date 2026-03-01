@@ -25,7 +25,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
   const [categories, setCategories] = useState([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [editSelectedCategoryIds, setEditSelectedCategoryIds] = useState([]);
-
+  const [creating, setCreating] = useState(false);
   const [showCreateEpisode, setShowCreateEpisode] = useState(false);
   const [showEditEpisode, setShowEditEpisode] = useState(false);
   const [createEpisodeForm, setCreateEpisodeForm] = useState({ ...emptyCreateEpisode });
@@ -121,6 +121,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     resetMessages();
 
     try {
+      setCreating(true);
       if (!createEpisodeForm.title.trim()) throw new Error("Title is required.");
       if (!createEpisodeForm.file) throw new Error("Audio file is required.");
 
@@ -131,6 +132,8 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
       await loadEpisodes();
     } catch (e2) {
       setErrorMsg(e2?.message || "Create failed.");
+    }finally {
+      setCreating(false);
     }
   }
 
@@ -249,13 +252,13 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
 
         <div className="d-flex flex-wrap gap-2 mb-3">
           <button className="btn btn-soft" onClick={loadEpisodes} disabled={episodesLoading}>
-            {episodesLoading ? "Refreshing..." : "Refresh"}
+            <i className="bi bi-arrow-repeat me-1"></i> {episodesLoading ? "Refreshing..." : "Refresh"}
           </button>
           <button className="btn btn-brand" onClick={openCreateEpisode}>
-            + Create Episode
+            <i className="bi bi-plus-circle me-1"></i> Create Episode
           </button>
           <button className="btn btn-soft" onClick={openAddCategory}>
-            + Add Category
+            <i className="bi bi-tag me-1"></i> Add Category
           </button>
         </div>
 
@@ -281,14 +284,14 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
                         </span>
 
                         {labels?.length ? (
-                          <span className="badge-soft badge-info">{labels.join(", ")}</span>
+                          <span className="badge-soft badge-info"><i className="bi bi-tag me-1"></i>{labels.join(", ")}</span>
                         ) : (
                           <span className="badge-soft">—</span>
                         )}
 
-                        <span className="badge-soft">Season: {e.season ?? "—"}</span>
-                        <span className="badge-soft">Duration: {secondsToMinSec(e.durationSeconds)}</span>
-                        <span className="badge-soft">Plays: {e.playCount ?? 0}</span>
+                        <span className="badge-soft"><i className="bi bi-layers me-1"></i>Season: {e.season ?? "—"}</span>
+                        <span className="badge-soft"><i className="bi bi-clock me-1"></i>Duration: {secondsToMinSec(e.durationSeconds)}</span>
+                        <span className="badge-soft"><i className="bi bi-play-fill me-1"></i>Plays: {e.playCount ?? 0}</span>
                       </div>
 
                       <div className="mt-2 row-title text-truncate">{e.title}</div>
@@ -309,7 +312,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     onClick={() => openEditEpisode(e)}
     type="button"
   >
-    Edit
+    <i className="bi bi-pencil me-1"></i>Edit
   </button>
 
   <button
@@ -317,7 +320,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
     onClick={() => handleDeleteEpisode(e.id)}
     type="button"
   >
-    Delete
+    <i className="bi bi-trash me-1"></i>Delete
   </button>
 </div>
                   </div>
@@ -349,6 +352,7 @@ export default function EpisodesSection({ setErrorMsg, setSuccessMsg, resetMessa
             categories={categories}
             selectedIds={selectedCategoryIds}
             setSelectedIds={setSelectedCategoryIds}
+            loading={creating} 
           />
         </Modal>
       ) : null}

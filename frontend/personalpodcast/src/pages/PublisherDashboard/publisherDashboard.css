@@ -1,4 +1,10 @@
-
+/* publisherDashboard.css */
+.publisher-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0b1220, #0f172a);
+  color: #e5e7eb;
+}
+/* keep layout */
 .publisher-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -16,11 +22,14 @@
   }
 }
 
+/* ONLY change colors to match adminDashboard.css */
 .stat-card {
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
+  background: var(--card);
+  border: 1px solid var(--stroke);
   border-radius: 16px;
   padding: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  color: var(--text);
 }
 
 .stat-label {
@@ -32,4 +41,5 @@
   font-size: 1.65rem;
   font-weight: 800;
   letter-spacing: .2px;
+  color: var(--text);
 }
